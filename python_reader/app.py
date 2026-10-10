@@ -11,10 +11,11 @@ from PySide6.QtGui import (
     QIcon, QFont, QCursor, QColor, QPixmap, QPainter, QImage, QAction
 )
 from PySide6.QtCore import (
-    Qt, QPoint, QSize, QTimer, QByteArray
+    Qt, QPoint, QRect, QSize, QTimer, QByteArray
 )
 from PySide6.QtSvg import QSvgRenderer
 
+from . import __version__
 from .config import ConfigManager
 from .file_monitor import FileMonitor
 from .cleaner import clean_abaqus_script, has_mask_statement
@@ -118,6 +119,38 @@ class ToastOverlay(QLabel):
         self._timer.start(duration_ms)
 
 
+class ToggleMenu(QMenu):
+    """QMenu that marks "on" toggle actions with a right-aligned Lucide check icon.
+
+    Checkable QActions are avoided because Qt's Windows styles replace the action's
+    icon with the check mark; here the function icon stays on the left.
+    """
+    CHECK_SIZE = 15
+    CHECK_MARGIN = 10
+
+    def __init__(self, parent=None, check_color="#475569"):
+        super().__init__(parent)
+        self.setObjectName("ToggleMenu")
+        # Same stroke weight as the other menu icons (SVG_CHECK is drawn bolder for buttons)
+        check_svg = SVG_CHECK.replace('stroke-width="2.5"', 'stroke-width="2"')
+        self._check_icon = render_svg_to_icon(check_svg, color=check_color, size=self.CHECK_SIZE)
+
+    def add_toggle(self, icon: QIcon, text: str, is_on: bool, slot) -> QAction:
+        act = self.addAction(icon, text, slot)
+        act.setProperty("toggle_on", is_on)
+        return act
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        painter = QPainter(self)
+        s = self.CHECK_SIZE
+        for act in self.actions():
+            if act.property("toggle_on"):
+                r = self.actionGeometry(act)
+                self._check_icon.paint(painter, QRect(r.right() - self.CHECK_MARGIN - s, r.center().y() - s // 2, s, s))
+        painter.end()
+
+
 class MainWindow(QMainWindow):
     RESIZE_MARGIN = 6
 
@@ -215,14 +248,14 @@ class MainWindow(QMainWindow):
         # File Badge Button (Clean Pill: status dot + file name)
         self.btn_file = QPushButton("● abaqus.rpy")
         self.btn_file.setObjectName("FileBadge")
-        self.btn_file.setToolTip("点击切换要监控的 Abaqus 脚本文件 (.rpy / .jnl / .py)")
+        self.btn_file.setToolTip("更换监控文件")
         self.btn_file.clicked.connect(self._browse_file)
         layout.addWidget(self.btn_file)
 
         # Mask Warning Badge (Shown when getSequenceFromMask is detected)
-        self.btn_mask_warning = QPushButton("掩码⚠️")
+        self.btn_mask_warning = QPushButton("掩码")
         self.btn_mask_warning.setObjectName("MaskWarning")
-        self.btn_mask_warning.setToolTip("检测到 getSequenceFromMask 掩码！点击一键切换为坐标 (findAt) 或索引模式")
+        self.btn_mask_warning.setToolTip("检测到 getSequenceFromMask，建议切换为坐标或索引模式")
         self.btn_mask_warning.clicked.connect(self._show_abaqus_mode_dialog)
         self.btn_mask_warning.hide()
         layout.addWidget(self.btn_mask_warning)
@@ -230,8 +263,8 @@ class MainWindow(QMainWindow):
         layout.addStretch()
 
         # 0. 录制格式切换 (坐标/索引/掩码)
-        self.btn_mode = QPushButton("录制格式")
-        self.btn_mode.setToolTip("切换 Abaqus 输出格式 (避免 getSequenceFromMask 掩码，切换为坐标 findAt 或索引 INDEX)")
+        self.btn_mode = QPushButton("录制模式")
+        self.btn_mode.setToolTip("Abaqus 几何录制模式")
         self.btn_mode.clicked.connect(self._show_mode_menu)
         layout.addWidget(self.btn_mode)
 
@@ -240,14 +273,14 @@ class MainWindow(QMainWindow):
 
         self.btn_filter.setCheckable(True)
         self.btn_filter.setChecked(self.config.get("filter_viewport", True))
-        self.btn_filter.setToolTip("开启时自动过滤无用的视图旋转、平移、缩放命令流")
+        self.btn_filter.setToolTip("隐藏视图操作（平移、旋转、缩放）")
         self.btn_filter.clicked.connect(self._toggle_filter)
         self.btn_filter.toggled.connect(self._update_button_icons)
         layout.addWidget(self.btn_filter)
 
         # 2. 复制清洗代码
         self.btn_copy = QPushButton("复制")
-        self.btn_copy.setToolTip("一键复制清洗后的有效建模命令到剪贴板")
+        self.btn_copy.setToolTip("复制代码（不含视图操作）")
         self.btn_copy.clicked.connect(self._copy_clean_code)
         layout.addWidget(self.btn_copy)
 
@@ -256,7 +289,7 @@ class MainWindow(QMainWindow):
         self.btn_pin.setCheckable(True)
         self.btn_pin.setFixedWidth(28)
         self.btn_pin.setChecked(self.config.get("topmost", True))
-        self.btn_pin.setToolTip("切换窗口始终置顶")
+        self.btn_pin.setToolTip("置顶")
         self.btn_pin.clicked.connect(self._toggle_topmost)
         self.btn_pin.toggled.connect(self._update_button_icons)
         layout.addWidget(self.btn_pin)
@@ -264,14 +297,14 @@ class MainWindow(QMainWindow):
         # 4. 主题切换 (Lucide Vector Sun / Moon)
         self.btn_theme = QPushButton()
         self.btn_theme.setFixedWidth(28)
-        self.btn_theme.setToolTip("切换深色 / 浅色模式")
+        self.btn_theme.setToolTip("切换主题")
         self.btn_theme.clicked.connect(self._toggle_theme)
         layout.addWidget(self.btn_theme)
 
         # 5. 更多菜单 (Lucide Horizontal More)
         self.btn_more = QPushButton()
         self.btn_more.setFixedWidth(28)
-        self.btn_more.setToolTip("更多功能与设置")
+        self.btn_more.setToolTip("更多")
         self.btn_more.clicked.connect(self._show_more_menu)
         layout.addWidget(self.btn_more)
 
@@ -349,7 +382,7 @@ class MainWindow(QMainWindow):
             self.btn_file.setText(f"○ {filename}")
             self.btn_file.setStyleSheet("color: #d97706; font-weight: 600;")
 
-        self.btn_file.setToolTip(f"{msg}\n路径: {self.file_monitor.filepath}\n点击更换监控文件")
+        self.btn_file.setToolTip(f"{msg}\n{self.file_monitor.filepath}")
 
     def _refresh_editor_content(self):
         filter_active = self.config.get("filter_viewport", True)
@@ -375,7 +408,7 @@ class MainWindow(QMainWindow):
         self.config.set("filter_viewport", new_val)
         self._refresh_editor_content()
         self._update_button_icons()
-        self.show_toast(f"视口过滤：{'已开启 (过滤平移/缩放)' if new_val else '已关闭 (显示完整命令)'}", is_active=new_val)
+        self.show_toast("已隐藏视图操作" if new_val else "已显示全部命令", is_active=new_val)
 
     def _copy_clean_code(self):
         text = clean_abaqus_script(self.raw_text_buffer, filter_viewport=True)
@@ -387,7 +420,6 @@ class MainWindow(QMainWindow):
         self.btn_copy.setText("已复制")
         self.btn_copy.setIcon(render_svg_to_icon(SVG_CHECK, color="#10b981", size=13))
         QTimer.singleShot(1200, self._restore_copy_button)
-        self.show_toast("建模命令已复制到剪贴板", is_active=True)
 
     def _restore_copy_button(self):
         is_dark = self.config.get("dark_theme", False)
@@ -399,7 +431,7 @@ class MainWindow(QMainWindow):
         self.raw_text_buffer = ""
         self.btn_mask_warning.hide()
         self.editor.clear()
-        self.show_toast("当前视图已清空", is_active=False)
+        self.show_toast("已清空", is_active=False)
 
     def _toggle_topmost(self):
         new_val = self.btn_pin.isChecked()
@@ -407,7 +439,7 @@ class MainWindow(QMainWindow):
         self._update_window_flags()
         self.show()
         self._update_button_icons()
-        self.show_toast(f"窗口置顶：{'已开启' if new_val else '已关闭'}", is_active=new_val)
+        self.show_toast("已置顶" if new_val else "已取消置顶", is_active=new_val)
 
     def _toggle_theme(self):
         is_dark = not self.config.get("dark_theme", False)
@@ -415,15 +447,14 @@ class MainWindow(QMainWindow):
         theme_name = "dark" if is_dark else "light"
         self.editor.apply_theme(theme_name)
         self._apply_theme_style()
-        self.show_toast(f"主题切换：已设为{'深色模式' if is_dark else '浅色模式'}", is_active=True)
 
     def _browse_file(self):
         initial_dir = os.path.dirname(self.file_monitor.filepath) if self.file_monitor.filepath else os.getcwd()
         filepath, _ = QFileDialog.getOpenFileName(
             self,
-            "选择监控的 Abaqus 脚本文件",
+            "打开监控文件",
             initial_dir,
-            "ABAQUS 脚本/记录 (*.rpy *.jnl *.py);;所有文件 (*.*)"
+            "Abaqus 脚本 (*.rpy *.jnl *.py);;所有文件 (*.*)"
         )
         if filepath:
             self.config.set("last_file", filepath)
@@ -432,7 +463,7 @@ class MainWindow(QMainWindow):
     def _save_as_file(self):
         filepath, _ = QFileDialog.getSaveFileName(
             self,
-            "另存为 Python 脚本",
+            "另存为",
             os.getcwd(),
             "Python 脚本 (*.py);;文本文件 (*.txt);;所有文件 (*.*)"
         )
@@ -441,74 +472,57 @@ class MainWindow(QMainWindow):
             try:
                 with open(filepath, "w", encoding="utf-8") as f:
                     f.write(text)
-                QMessageBox.information(self, "保存成功", f"文件已保存至:\n{filepath}")
+                self.show_toast(f"已保存 {os.path.basename(filepath)}", is_active=True)
             except Exception as e:
-                QMessageBox.critical(self, "保存失败", f"无法写入文件:\n{e}")
+                QMessageBox.critical(self, "保存失败", str(e))
 
-    def _show_more_menu(self):
-        """Displays menu with pure Lucide icons using color-only distinction for toggle states."""
+    def _build_menu(self, context: bool = False) -> QMenu:
+        """Builds the main menu shared by the "more" button and the right-click context menu."""
         is_dark = self.config.get("dark_theme", False)
         action_color = "#94a3b8" if is_dark else "#475569"
-        color_on = "#38bdf8" if is_dark else "#0284c7"
-        color_off = "#475569" if is_dark else "#cbd5e1"
 
-        menu = QMenu(self)
+        def icon(svg):
+            return render_svg_to_icon(svg, color=action_color, size=15)
 
-        menu.addAction(render_svg_to_icon(SVG_CLEAR, color=action_color, size=15), "清空当前视图", self._clear_view)
-        menu.addAction(render_svg_to_icon(SVG_SAVE, color=action_color, size=15), "另存为 Python 脚本...", self._save_as_file)
-        menu.addAction(render_svg_to_icon(SVG_FOLDER, color=action_color, size=15), "更换监控文件...", self._browse_file)
+        menu = ToggleMenu(self, check_color=action_color)
+
+        if context:
+            menu.addAction(icon(SVG_COPY), "复制", self._copy_clean_code)
+        menu.addAction(icon(SVG_CLEAR), "清空", self._clear_view)
+        menu.addAction(icon(SVG_FOLDER), "打开文件...", self._browse_file)
+        menu.addAction(icon(SVG_SAVE), "另存为...", self._save_as_file)
         menu.addSeparator()
 
-        # Word wrap
-        is_wrap = self.config.get("word_wrap", True)
-        menu.addAction(
-            render_svg_to_icon(SVG_WRAP, color=color_on if is_wrap else color_off, size=15),
-            "自动换行",
-            lambda: self._toggle_word_wrap()
-        )
+        if context:
+            menu.add_toggle(icon(SVG_FILTER), "隐藏视图操作", self.btn_filter.isChecked(), lambda: self.btn_filter.click())
+        menu.add_toggle(icon(SVG_WRAP), "自动换行", self.config.get("word_wrap", True), lambda: self._toggle_word_wrap())
+        menu.add_toggle(icon(SVG_SCROLL), "自动滚动", self.config.get("auto_scroll", True), lambda: self._toggle_auto_scroll())
+        menu.add_toggle(icon(SVG_HASH), "行号", self.config.get("show_line_numbers", True), lambda: self._toggle_line_numbers())
+        menu.add_toggle(icon(SVG_FRAME), "无边框", self.config.get("frameless", True), lambda: self._toggle_frameless())
 
-        # Auto scroll
-        is_scroll = self.config.get("auto_scroll", True)
-        menu.addAction(
-            render_svg_to_icon(SVG_SCROLL, color=color_on if is_scroll else color_off, size=15),
-            "自动滚屏到底部",
-            lambda: self._toggle_auto_scroll()
-        )
-
-        # Show line numbers
-        is_lines = self.config.get("show_line_numbers", True)
-        menu.addAction(
-            render_svg_to_icon(SVG_HASH, color=color_on if is_lines else color_off, size=15),
-            "显示行号",
-            lambda: self._toggle_line_numbers()
-        )
-
-        # Frameless HUD
-        is_frame = self.config.get("frameless", True)
-        menu.addAction(
-            render_svg_to_icon(SVG_FRAME, color=color_on if is_frame else color_off, size=15),
-            "无边框极简 HUD 模式",
-            lambda: self._toggle_frameless()
-        )
-
-        menu.addSeparator()
-
-        # Opacity
         current_op = self.config.get("opacity", 95)
-        opacity_menu = menu.addMenu(render_svg_to_icon(SVG_OPACITY, color=action_color, size=15), "窗口透明度")
+        opacity_menu = ToggleMenu(menu, check_color=action_color)
+        opacity_menu.setTitle("透明度")
+        opacity_menu.setIcon(icon(SVG_OPACITY))
         for val in [100, 95, 90, 80, 70, 60, 50]:
-            act = opacity_menu.addAction(f"{val}%")
-            act.setCheckable(True)
-            act.setChecked(val == current_op)
-            act.triggered.connect(lambda checked, v=val: self._set_opacity(v))
+            opacity_menu.add_toggle(QIcon(), f"{val}%", val == current_op, lambda v=val: self._set_opacity(v))
+        menu.addMenu(opacity_menu)
 
         menu.addSeparator()
-        menu.addAction(render_svg_to_icon(SVG_CROSSHAIR, color=action_color, size=15), "Abaqus 录制格式配置 (坐标/索引)...", self._show_abaqus_mode_dialog)
-        menu.addAction(render_svg_to_icon(SVG_BOOK_OPEN, color=action_color, size=15), "Abaqus 实体索引开发指南...", self._show_guide_dialog)
+        menu.addAction(icon(SVG_CROSSHAIR), "录制模式...", self._show_abaqus_mode_dialog)
+        menu.addAction(icon(SVG_BOOK_OPEN), "录制模式说明", self._show_guide_dialog)
         menu.addSeparator()
-        menu.addAction(render_svg_to_icon(SVG_RESET, color=action_color, size=15), "重置窗口位置 (居中)", self._reset_window_geometry)
-        menu.addAction(render_svg_to_icon(SVG_INFO, color=action_color, size=15), "关于 PythonReader 2.0...", self._show_about)
+        menu.addAction(icon(SVG_RESET), "重置窗口位置", self._reset_window_geometry)
+        menu.addAction(icon(SVG_INFO), "关于", self._show_about)
 
+        if context:
+            menu.addSeparator()
+            menu.addAction(icon(SVG_QUIT), "退出", self.close)
+
+        return menu
+
+    def _show_more_menu(self):
+        menu = self._build_menu()
         self.btn_more.setChecked(True)
         menu.exec(self.btn_more.mapToGlobal(QPoint(0, self.btn_more.height() + 2)))
         self.btn_more.setChecked(False)
@@ -520,7 +534,7 @@ class MainWindow(QMainWindow):
         self.editor.setLineWrapMode(
             CodeEditor.LineWrapMode.WidgetWidth if checked else CodeEditor.LineWrapMode.NoWrap
         )
-        self.show_toast(f"自动换行：{'已开启' if checked else '已关闭'}", is_active=checked)
+        self.show_toast(f"自动换行：{'开' if checked else '关'}", is_active=checked)
 
     def _toggle_auto_scroll(self, checked=None):
         if checked is None or isinstance(checked, QPoint) or not isinstance(checked, bool):
@@ -529,14 +543,14 @@ class MainWindow(QMainWindow):
         self.editor.auto_scroll = checked
         if checked:
             self.editor.scroll_to_bottom()
-        self.show_toast(f"自动滚屏：{'已开启' if checked else '已关闭'}", is_active=checked)
+        self.show_toast(f"自动滚动：{'开' if checked else '关'}", is_active=checked)
 
     def _toggle_line_numbers(self, checked=None):
         if checked is None or isinstance(checked, QPoint) or not isinstance(checked, bool):
             checked = not self.config.get("show_line_numbers", True)
         self.config.set("show_line_numbers", checked)
         self.editor.set_line_numbers_visible(checked)
-        self.show_toast(f"行号显示：{'已开启' if checked else '已关闭'}", is_active=checked)
+        self.show_toast(f"行号：{'开' if checked else '关'}", is_active=checked)
 
     def _toggle_frameless(self, checked=None):
         if checked is None or isinstance(checked, QPoint) or not isinstance(checked, bool):
@@ -544,12 +558,12 @@ class MainWindow(QMainWindow):
         self.config.set("frameless", checked)
         self._update_window_flags()
         self.show()
-        self.show_toast(f"HUD 模式：{'已开启极简无边框' if checked else '已恢复标准窗口'}", is_active=checked)
+        self.show_toast(f"无边框：{'开' if checked else '关'}", is_active=checked)
 
     def _set_opacity(self, percent: int):
         self.config.set("opacity", percent)
         self.setWindowOpacity(percent / 100.0)
-        self.show_toast(f"窗口透明度：已设为 {percent}%", is_active=True)
+        self.show_toast(f"透明度 {percent}%", is_active=True)
 
     def _reset_window_geometry(self):
         screen = QApplication.primaryScreen().geometry()
@@ -561,93 +575,62 @@ class MainWindow(QMainWindow):
         self.config.set("window_y", y)
         self.config.set("window_width", w)
         self.config.set("window_height", h)
-        self.show_toast("窗口位置已居中重置", is_active=True)
+        self.show_toast("窗口已居中", is_active=True)
 
     def _show_about(self):
         QMessageBox.about(
             self,
-            "关于 PythonReader 2.0",
-            "<h3>PythonReader 2.0</h3>"
-            "<p><b>ABAQUS CAE Python 命令流实时监视与辅助工具</b></p>"
-            "<hr/>"
-            "<p>• <b>原生 Python 语法高亮</b>：关键字、API、函数、字符串清晰着色。<br/>"
-            "• <b>智能视口命令过滤</b>：一键剔除平移、旋转、缩放等无用冗余操作。<br/>"
-            "• <b>零锁死安全读取</b>：非阻塞共享读取，绝不与 Abaqus 写文件冲突。<br/>"
-            "• <b>现代轻量 HUD</b>：支持右键任意拖动、边缘拉伸、置顶、透明度调节。<br/>"
-            "• <b>统一 Lucide 矢量图标</b>：全界面采用高精度统一线形图标，视网膜级锐利无模糊。</p>"
-            "<hr/>"
-            "<p><b>致谢 (Acknowledgments)</b><br/>"
-            "特别致谢原作者：<b>焦博士</b>（邮箱：<a href='mailto:ck436@126.com'>ck436@126.com</a>）<br/>"
-            "致敬其 2010 年经典原创工具及为 ABAQUS 二次开发社区作出的宝贵贡献！</p>"
+            "关于",
+            f"<h3>PythonReader {__version__}</h3>"
+            "<p>Abaqus/CAE 命令流实时查看工具</p>"
+            "<p>基于焦博士（<a href='mailto:ck436@126.com'>ck436@126.com</a>）"
+            "2010 年开发的 ABAQUS-PythonReader 重写。</p>"
+            "<p>MIT License</p>"
         )
 
     def _show_mode_menu(self):
-        """Displays quick menu to copy coordinate / index journal commands or configure env."""
+        """Quick menu: copy a journalOptions command for the running Abaqus session."""
         is_dark = self.config.get("dark_theme", False)
         mic = "#94a3b8" if is_dark else "#475569"
 
         menu = QMenu(self)
-
-        menu.addAction(
-            render_svg_to_icon(SVG_CROSSHAIR, color="#10b981", size=15),
-            "切换为坐标模式 (findAt 坐标点) [推荐参数化]",
-            lambda: self._quick_set_mode(MODE_COORDINATE)
-        )
-        menu.addAction(
-            render_svg_to_icon(SVG_LIST_ORDERED, color="#3b82f6", size=15),
-            "切换为实际索引模式 (INDEX 下标序号)",
-            lambda: self._quick_set_mode(MODE_INDEX)
-        )
-        menu.addAction(
-            render_svg_to_icon(SVG_TERMINAL, color=mic, size=15),
-            "恢复掩码模式 (默认 getSequenceFromMask)",
-            lambda: self._quick_set_mode(MODE_COMPRESSED)
-        )
+        for mode_key, svg, color in [
+            (MODE_COORDINATE, SVG_CROSSHAIR, "#10b981"),
+            (MODE_INDEX, SVG_LIST_ORDERED, "#3b82f6"),
+            (MODE_COMPRESSED, SVG_TERMINAL, mic),
+        ]:
+            menu.addAction(
+                render_svg_to_icon(svg, color=color, size=15),
+                MODE_INFO[mode_key]["title"],
+                lambda m=mode_key: self._quick_set_mode(m)
+            )
         menu.addSeparator()
         menu.addAction(
             render_svg_to_icon(SVG_SETTINGS, color=mic, size=15),
-            "高级配置与永久生效 (写入 abaqus_v6.env)...",
+            "设为启动默认...",
             self._show_abaqus_mode_dialog
-        )
-        menu.addAction(
-            render_svg_to_icon(SVG_BOOK_OPEN, color=mic, size=15),
-            "Abaqus 实体索引与二次开发详解指南...",
-            self._show_guide_dialog
         )
 
         menu.exec(self.btn_mode.mapToGlobal(QPoint(0, self.btn_mode.height() + 2)))
 
     def _quick_set_mode(self, mode_key: str):
         info = MODE_INFO[mode_key]
-        cmd = info["command"]
-        QApplication.clipboard().setText(cmd)
+        QApplication.clipboard().setText(info["command"])
 
         hwnd = find_abaqus_window()
-        focus_note = ""
         if hwnd:
             activate_abaqus_window(hwnd)
-            focus_note = "\n\n已尝试将 Abaqus CAE 窗口激活并置于前台！"
 
-        old_text = self.btn_mode.text()
-        self.btn_mode.setText(f"已复制: {info['badge']}")
+        self.btn_mode.setText(f"已复制：{info['badge']}")
         self.btn_mode.setIcon(render_svg_to_icon(SVG_CHECK, color="#10b981", size=13))
         QTimer.singleShot(1800, lambda: (
-            self.btn_mode.setText("录制格式"),
+            self.btn_mode.setText("录制模式"),
             self._update_button_icons()
         ))
-
-        QMessageBox.information(
-            self,
-            f"已切换为【{info['badge']}】",
-            f"已成功将【{info['badge']}】切换指令复制到剪贴板！{focus_note}\n\n"
-            f"命令流:\n{cmd}\n\n"
-            f"👉 请在 Abaqus CAE 最下方的命令行交互行 (>>>) 按 Ctrl+V 回车即刻生效！\n\n"
-            f"(若想以后每次启动软件都自动生效，请点击【高级配置】写入 abaqus_v6.env)"
-        )
+        self.show_toast("已复制指令，在 Abaqus 命令行粘贴并回车", is_active=True, duration_ms=3000)
 
     def _show_abaqus_mode_dialog(self):
-        project_dir = os.path.dirname(self.file_monitor.filepath) if self.file_monitor.filepath else os.getcwd()
-        dlg = AbaqusModeDialog(self, is_dark=self.config.get("dark_theme", False), project_dir=project_dir)
+        dlg = AbaqusModeDialog(self, is_dark=self.config.get("dark_theme", False))
         dlg.exec()
 
     def _show_guide_dialog(self):
@@ -744,6 +727,9 @@ class MainWindow(QMainWindow):
                 padding: 5px 20px 5px 10px;
                 border-radius: 4px;
             }}
+            QMenu#ToggleMenu::item {{
+                padding-right: 36px;
+            }}
             QMenu::item:selected {{
                 background-color: {colors["button_hover"]};
             }}
@@ -767,17 +753,17 @@ class MainWindow(QMainWindow):
 
         self.tray = QSystemTrayIcon(self)
         self.tray.setIcon(self._app_icon)
-        self.tray.setToolTip("PythonReader 2.0 - 实时命令流监视")
+        self.tray.setToolTip("PythonReader")
 
         is_dark = self.config.get("dark_theme", False)
         mic = "#94a3b8" if is_dark else "#475569"
 
         tray_menu = QMenu()
-        act_show = tray_menu.addAction(render_svg_to_icon(SVG_FRAME, color=mic, size=15), "显示 / 隐藏窗口", self._toggle_visibility)
-        act_browse = tray_menu.addAction(render_svg_to_icon(SVG_FOLDER, color=mic, size=15), "更换监控文件...", self._browse_file)
-        act_reset = tray_menu.addAction(render_svg_to_icon(SVG_RESET, color=mic, size=15), "重置窗口位置 (居中)", self._reset_window_geometry)
+        act_show = tray_menu.addAction(render_svg_to_icon(SVG_FRAME, color=mic, size=15), "显示/隐藏", self._toggle_visibility)
+        act_browse = tray_menu.addAction(render_svg_to_icon(SVG_FOLDER, color=mic, size=15), "打开文件...", self._browse_file)
+        act_reset = tray_menu.addAction(render_svg_to_icon(SVG_RESET, color=mic, size=15), "重置窗口位置", self._reset_window_geometry)
         tray_menu.addSeparator()
-        act_quit = tray_menu.addAction(render_svg_to_icon(SVG_QUIT, color=mic, size=15), "退出程序", self.close)
+        act_quit = tray_menu.addAction(render_svg_to_icon(SVG_QUIT, color=mic, size=15), "退出", self.close)
 
         self.tray.setContextMenu(tray_menu)
         self.tray.activated.connect(self._on_tray_activated)
@@ -895,64 +881,7 @@ class MainWindow(QMainWindow):
         super().mouseReleaseEvent(event)
 
     def _show_context_menu(self, global_pos: QPoint):
-        """Right-click context menu with pure Lucide icons and clear status indicators."""
-        is_dark = self.config.get("dark_theme", False)
-        action_color = "#94a3b8" if is_dark else "#475569"
-        color_on = "#38bdf8" if is_dark else "#0284c7"
-        color_off = "#475569" if is_dark else "#cbd5e1"
-
-        menu = QMenu(self)
-        menu.addAction(render_svg_to_icon(SVG_COPY, color=action_color, size=15), "复制清洗后的建模命令", self._copy_clean_code)
-        menu.addAction(render_svg_to_icon(SVG_CLEAR, color=action_color, size=15), "清空当前视图", self._clear_view)
-        menu.addSeparator()
-
-        # Viewport filter
-        is_filter = self.btn_filter.isChecked()
-        menu.addAction(
-            render_svg_to_icon(SVG_FILTER, color=color_on if is_filter else color_off, size=15),
-            "过滤视口变换命令 (Pan/Rotate/Zoom)",
-            lambda: (self.btn_filter.toggle(), self._toggle_filter())
-        )
-
-        # Word wrap
-        is_wrap = self.config.get("word_wrap", True)
-        menu.addAction(
-            render_svg_to_icon(SVG_WRAP, color=color_on if is_wrap else color_off, size=15),
-            "自动换行",
-            lambda: self._toggle_word_wrap()
-        )
-
-        # Auto scroll
-        is_scroll = self.config.get("auto_scroll", True)
-        menu.addAction(
-            render_svg_to_icon(SVG_SCROLL, color=color_on if is_scroll else color_off, size=15),
-            "自动滚屏到底部",
-            lambda: self._toggle_auto_scroll()
-        )
-
-        # Show line numbers
-        is_lines = self.config.get("show_line_numbers", True)
-        menu.addAction(
-            render_svg_to_icon(SVG_HASH, color=color_on if is_lines else color_off, size=15),
-            "显示行号",
-            lambda: self._toggle_line_numbers()
-        )
-
-        menu.addSeparator()
-        menu.addAction(render_svg_to_icon(SVG_FOLDER, color=action_color, size=15), "更换监控文件...", self._browse_file)
-        menu.addAction(render_svg_to_icon(SVG_SAVE, color=action_color, size=15), "另存为 Python 脚本...", self._save_as_file)
-        menu.addSeparator()
-
-        menu.addAction(render_svg_to_icon(SVG_CROSSHAIR, color=action_color, size=15), "Abaqus 录制格式配置 (坐标/索引)...", self._show_abaqus_mode_dialog)
-        menu.addAction(render_svg_to_icon(SVG_BOOK_OPEN, color=action_color, size=15), "Abaqus 实体索引开发指南...", self._show_guide_dialog)
-        menu.addSeparator()
-
-        menu.addAction(render_svg_to_icon(SVG_RESET, color=action_color, size=15), "重置窗口位置 (居中)", self._reset_window_geometry)
-        menu.addAction(render_svg_to_icon(SVG_INFO, color=action_color, size=15), "关于 PythonReader 2.0...", self._show_about)
-        menu.addSeparator()
-        menu.addAction(render_svg_to_icon(SVG_QUIT, color=action_color, size=15), "退出程序", self.close)
-
-        menu.exec(global_pos)
+        self._build_menu(context=True).exec(global_pos)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

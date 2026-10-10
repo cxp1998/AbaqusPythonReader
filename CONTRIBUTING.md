@@ -1,74 +1,48 @@
-# 贡献指南 (Contributing Guide)
+# 贡献指南
 
-欢迎为 **PythonReader** 做出贡献！本项目致力于为 ABAQUS 二次开发工程师提供极致流畅的实时命令流监控与辅助体验。
-
----
-
-## 🛠️ 本地开发环境搭建
-
-1. **克隆仓库**：
-   ```bash
-   git clone https://github.com/example/PythonReader.git
-   cd PythonReader
-   ```
-
-2. **创建并激活 Python 虚拟环境（推荐 Python 3.10+）**：
-   ```bash
-   python -m venv .venv
-   # Windows PowerShell
-   .\.venv\Scripts\Activate.ps1
-   # Windows CMD
-   .\.venv\Scripts\activate.bat
-   ```
-
-3. **安装开发依赖**：
-   ```bash
-   pip install -r requirements-dev.txt
-   ```
-
----
-
-## 🏃 运行程序
-
-- 通过 Python 模块运行：
-  ```bash
-  python run.py
-  ```
-- 或者双击运行根目录下的 `run.bat`。
-
----
-
-## 🧪 运行测试套件
-
-在提交代码前，请确保所有自动化单元测试均通过：
+## 开发环境
 
 ```bash
-# 使用内置 unittest
-python -m unittest discover tests
-
-# 或使用 pytest（若已安装）
-pytest
+git clone https://github.com/example/PythonReader.git
+cd PythonReader
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements-dev.txt
 ```
 
----
+## 运行与测试
 
-## 📦 打包构建 Windows 可执行程序
+```bash
+python run.py
+python -m unittest discover tests
+```
 
-本项目使用 PyInstaller 独立打包，已预置规格配置文件 `PythonReader_v2.spec`：
+CI 使用上面的 unittest 命令；也可以直接运行 `pytest`。
+
+## 打包
 
 ```bash
 pyinstaller PythonReader_v2.spec
 ```
 
-生成的独立单文件 exe 位于 `dist/PythonReader_v2.exe`。
+输出为 `dist/PythonReader_v2.exe`。推送 `v*` 标签后，GitHub Actions 会自动打包并发布到 Releases。
 
----
+## 代码结构
 
-## 🔀 提交规范 (PR Workflow)
+| 模块 | 职责 |
+| --- | --- |
+| `file_monitor.py` | 轮询文件，读取新增内容 |
+| `cleaner.py` | 按语句拆分代码，过滤视图操作 |
+| `app.py` | 主窗口、菜单、主题 |
+| `editor.py` / `highlighter.py` | 编辑器、行号、语法高亮 |
+| `abaqus_mode.py` | 录制模式与 `abaqus_v6.env` 配置 |
+| `icons.py` | 内嵌 SVG 图标 |
+| `config.py` | 用户配置读写 |
 
-1. Fork 本项目到个人账号。
-2. 基于 `main` 分支创建特性分支（例如 `feature/custom-shortcut` 或 `fix/mask-parser`）。
-3. 遵循 PEP 8 编码风格，确保代码注释和文档完整。
-4. 编写或补充对应的测试用例（位于 `tests/`）。
-5. 提交清晰规范的 Commit 消息。
-6. 发起 Pull Request 并详细描述变更内容与测试结果。
+## 提交 PR
+
+1. 从 `main` 创建分支，如 `fix/mask-parser`。
+2. 遵循 PEP 8。界面文字使用中文，保持简洁。
+3. 修改过滤、配置或文件监控逻辑时，在 `tests/` 中补充测试。
+4. 运行程序会改写 `python_reader/config.json`，提交前不要带上这类改动。
+5. 在 PR 中说明改动内容和测试情况。
