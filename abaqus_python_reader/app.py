@@ -25,7 +25,7 @@ from .icons import (
     render_svg_to_icon, render_svg_to_pixmap, get_app_logo_pixmap,
     SVG_APP_LOGO,
     SVG_SUN, SVG_MOON, SVG_COPY, SVG_CHECK, SVG_PIN, SVG_FILTER,
-    SVG_MORE, SVG_CLOSE, SVG_CLEAR, SVG_SAVE, SVG_FOLDER,
+    SVG_MORE, SVG_MINUS, SVG_CLOSE, SVG_CLEAR, SVG_SAVE, SVG_FOLDER,
     SVG_WRAP, SVG_SCROLL, SVG_HASH, SVG_FRAME, SVG_OPACITY,
     SVG_RESET, SVG_INFO, SVG_QUIT,
     SVG_CROSSHAIR, SVG_LIST_ORDERED, SVG_ALERT_TRIANGLE,
@@ -262,12 +262,6 @@ class MainWindow(QMainWindow):
 
         layout.addStretch()
 
-        # 0. 录制格式切换 (坐标/索引/掩码)
-        self.btn_mode = QPushButton("录制模式")
-        self.btn_mode.setToolTip("Abaqus 几何录制模式")
-        self.btn_mode.clicked.connect(self._show_mode_menu)
-        layout.addWidget(self.btn_mode)
-
         # 1. 过滤视口
         self.btn_filter = QPushButton("过滤")
 
@@ -308,7 +302,14 @@ class MainWindow(QMainWindow):
         self.btn_more.clicked.connect(self._show_more_menu)
         layout.addWidget(self.btn_more)
 
-        # 6. 关闭按钮 (Lucide Close X)
+        # 6. 最小化到任务栏 (Lucide Minus)
+        self.btn_minimize = QPushButton()
+        self.btn_minimize.setFixedWidth(26)
+        self.btn_minimize.setToolTip("最小化")
+        self.btn_minimize.clicked.connect(self.showMinimized)
+        layout.addWidget(self.btn_minimize)
+
+        # 7. 关闭按钮 (Lucide Close X)
         self.btn_close = QPushButton()
         self.btn_close.setFixedWidth(26)
         self.btn_close.setObjectName("CloseBtn")
@@ -326,8 +327,7 @@ class MainWindow(QMainWindow):
         # Unified App Logo (Matches external icon)
         self.lbl_logo.setPixmap(get_app_logo_pixmap(size=18, is_dark=is_dark))
 
-        # Mode and Mask Warning Buttons
-        self.btn_mode.setIcon(render_svg_to_icon(SVG_CROSSHAIR, color=icon_color, size=13))
+        # Mask Warning Button
         self.btn_mask_warning.setIcon(render_svg_to_icon(SVG_ALERT_TRIANGLE, color="#f59e0b" if is_dark else "#d97706", size=13))
 
         # Filter Button: white icon if checked (active blue bg), else normal icon_color
@@ -347,14 +347,16 @@ class MainWindow(QMainWindow):
         theme_color = "#f59e0b" if is_dark else "#6366f1"
         self.btn_theme.setIcon(render_svg_to_icon(theme_svg, color=theme_color, size=15))
 
-        # More and Close
+        # More, Minimize and Close
         self.btn_more.setIcon(render_svg_to_icon(SVG_MORE, color=icon_color, size=14))
+        self.btn_minimize.setIcon(render_svg_to_icon(SVG_MINUS, color=icon_color, size=12))
         self.btn_close.setIcon(render_svg_to_icon(SVG_CLOSE, color=icon_color, size=12))
 
     def _update_window_flags(self):
         flags = Qt.WindowType.Window
         if self.config.get("frameless", True):
-            flags |= Qt.WindowType.FramelessWindowHint
+            # Minimize hint keeps WS_MINIMIZEBOX so the taskbar button can still minimize/restore
+            flags |= Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowMinimizeButtonHint
         if self.config.get("topmost", True):
             flags |= Qt.WindowType.WindowStaysOnTopHint
         self.setWindowFlags(flags)
@@ -509,8 +511,7 @@ class MainWindow(QMainWindow):
         menu.addMenu(opacity_menu)
 
         menu.addSeparator()
-        menu.addAction(icon(SVG_CROSSHAIR), "录制模式...", self._show_abaqus_mode_dialog)
-        menu.addAction(icon(SVG_BOOK_OPEN), "录制模式说明", self._show_guide_dialog)
+        menu.addMenu(self._build_mode_menu(menu, action_color))
         menu.addSeparator()
         menu.addAction(icon(SVG_RESET), "重置窗口位置", self._reset_window_geometry)
         menu.addAction(icon(SVG_INFO), "关于", self._show_about)
@@ -588,30 +589,34 @@ class MainWindow(QMainWindow):
             "<p>MIT License</p>"
         )
 
-    def _show_mode_menu(self):
-        """Quick menu: copy a journalOptions command for the running Abaqus session."""
-        is_dark = self.config.get("dark_theme", False)
-        mic = "#94a3b8" if is_dark else "#475569"
-
-        menu = QMenu(self)
+    def _build_mode_menu(self, parent: QMenu, action_color: str) -> QMenu:
+        """Recording-mode submenu: copy a journalOptions command for the running Abaqus session."""
+        menu = QMenu("录制模式", parent)
+        menu.setIcon(render_svg_to_icon(SVG_CROSSHAIR, color=action_color, size=15))
         for mode_key, svg, color in [
             (MODE_COORDINATE, SVG_CROSSHAIR, "#10b981"),
             (MODE_INDEX, SVG_LIST_ORDERED, "#3b82f6"),
-            (MODE_COMPRESSED, SVG_TERMINAL, mic),
+            (MODE_COMPRESSED, SVG_TERMINAL, action_color),
         ]:
-            menu.addAction(
+            act = menu.addAction(
                 render_svg_to_icon(svg, color=color, size=15),
                 MODE_INFO[mode_key]["title"],
                 lambda m=mode_key: self._quick_set_mode(m)
             )
+            act.setToolTip(f"复制指令：{MODE_INFO[mode_key]['command']}")
+        menu.setToolTipsVisible(True)
         menu.addSeparator()
         menu.addAction(
-            render_svg_to_icon(SVG_SETTINGS, color=mic, size=15),
+            render_svg_to_icon(SVG_SETTINGS, color=action_color, size=15),
             "设为启动默认...",
             self._show_abaqus_mode_dialog
         )
-
-        menu.exec(self.btn_mode.mapToGlobal(QPoint(0, self.btn_mode.height() + 2)))
+        menu.addAction(
+            render_svg_to_icon(SVG_BOOK_OPEN, color=action_color, size=15),
+            "录制模式说明",
+            self._show_guide_dialog
+        )
+        return menu
 
     def _quick_set_mode(self, mode_key: str):
         info = MODE_INFO[mode_key]
@@ -621,13 +626,7 @@ class MainWindow(QMainWindow):
         if hwnd:
             activate_abaqus_window(hwnd)
 
-        self.btn_mode.setText(f"已复制：{info['badge']}")
-        self.btn_mode.setIcon(render_svg_to_icon(SVG_CHECK, color="#10b981", size=13))
-        QTimer.singleShot(1800, lambda: (
-            self.btn_mode.setText("录制模式"),
-            self._update_button_icons()
-        ))
-        self.show_toast("已复制指令，在 Abaqus 命令行粘贴并回车", is_active=True, duration_ms=3000)
+        self.show_toast(f"已复制{info['badge']}指令，在 Abaqus 命令行粘贴并回车", is_active=True, duration_ms=3000)
 
     def _show_abaqus_mode_dialog(self):
         dlg = AbaqusModeDialog(self, is_dark=self.config.get("dark_theme", False))
@@ -770,10 +769,10 @@ class MainWindow(QMainWindow):
         self.tray.show()
 
     def _toggle_visibility(self):
-        if self.isVisible():
+        if self.isVisible() and not self.isMinimized():
             self.hide()
         else:
-            self.show()
+            self.showNormal()
             self.activateWindow()
 
     def _on_tray_activated(self, reason):
