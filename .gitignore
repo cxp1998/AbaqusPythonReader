@@ -75,5 +75,6 @@ $RECYCLE.BIN/
 # =========================
 abaqus_v6.env
 *.rpy*
+!examples/*.rpy
 *.rec
 *.log
