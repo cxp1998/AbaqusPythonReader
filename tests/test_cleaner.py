@@ -1,5 +1,5 @@
 import unittest
-from python_reader.cleaner import (
+from abaqus_python_reader.cleaner import (
     clean_abaqus_script,
     has_mask_statement,
     is_viewport_statement,

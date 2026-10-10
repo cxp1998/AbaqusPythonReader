@@ -1,7 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
-from python_reader.config import ConfigManager, DEFAULT_CONFIG
+from abaqus_python_reader.config import ConfigManager, DEFAULT_CONFIG
 
 
 class TestConfigManager(unittest.TestCase):

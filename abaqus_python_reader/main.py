@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import Qt
 
-from python_reader.app import MainWindow, get_vector_icon
+from abaqus_python_reader.app import MainWindow, get_vector_icon
 
 
 def main():
@@ -21,8 +21,8 @@ def main():
     )
 
     app = QApplication(sys.argv)
-    app.setApplicationName("PythonReader")
-    app.setApplicationDisplayName("PythonReader 2.0")
+    app.setApplicationName("AbaqusPythonReader")
+    app.setApplicationDisplayName("AbaqusPythonReader")
 
     app_icon = get_vector_icon()
     app.setWindowIcon(app_icon)

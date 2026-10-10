@@ -1,7 +1,7 @@
-# PythonReader
+# AbaqusPythonReader
 
 <p align="center">
-  <img src="python_reader/resources/icon_256.png" width="96" height="96" alt="PythonReader" />
+  <img src="abaqus_python_reader/resources/icon_256.png" width="96" height="96" alt="AbaqusPythonReader" />
 </p>
 
 <p align="center">
@@ -23,7 +23,7 @@
 
 ## 使用
 
-从 [Releases](https://github.com/example/PythonReader/releases) 下载 `PythonReader_v2.exe` 直接运行，或从源码启动（Python 3.10+）：
+从 [Releases](https://github.com/example/AbaqusPythonReader/releases) 下载 `AbaqusPythonReader.exe` 直接运行，或从源码启动（Python 3.10+）：
 
 ```bash
 python -m venv .venv

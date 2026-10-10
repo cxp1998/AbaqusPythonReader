@@ -25,12 +25,12 @@ jobs:
 
       - name: Build Executable with PyInstaller
         run: |
-          pyinstaller PythonReader_v2.spec
+          pyinstaller AbaqusPythonReader.spec
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: dist/PythonReader_v2.exe
+          files: dist/AbaqusPythonReader.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

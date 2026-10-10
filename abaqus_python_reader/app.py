@@ -183,7 +183,7 @@ class MainWindow(QMainWindow):
 
     def _init_ui(self):
         self.setWindowIcon(self._app_icon)
-        self.setWindowTitle("PythonReader")
+        self.setWindowTitle("AbaqusPythonReader")
 
         # Geometry
         x = self.config.get("window_x", 200)
@@ -241,7 +241,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.lbl_logo)
 
         # App Title
-        self.lbl_title = QLabel("PythonReader")
+        self.lbl_title = QLabel("AbaqusPythonReader")
         self.lbl_title.setFont(QFont("Segoe UI", 9, QFont.Weight.DemiBold))
         layout.addWidget(self.lbl_title)
 
@@ -581,7 +581,7 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "关于",
-            f"<h3>PythonReader {__version__}</h3>"
+            f"<h3>AbaqusPythonReader {__version__}</h3>"
             "<p>Abaqus/CAE 命令流实时查看工具</p>"
             "<p>基于焦博士（<a href='mailto:ck436@126.com'>ck436@126.com</a>）"
             "2010 年开发的 ABAQUS-PythonReader 重写。</p>"
@@ -753,7 +753,7 @@ class MainWindow(QMainWindow):
 
         self.tray = QSystemTrayIcon(self)
         self.tray.setIcon(self._app_icon)
-        self.tray.setToolTip("PythonReader")
+        self.tray.setToolTip("AbaqusPythonReader")
 
         is_dark = self.config.get("dark_theme", False)
         mic = "#94a3b8" if is_dark else "#475569"

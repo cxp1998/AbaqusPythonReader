@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-PythonReader 2.0 is a Windows-only PySide6 (Qt6) HUD app that tails an Abaqus CAE replay journal (`abaqus.rpy`) in real time, syntax-highlights it, and optionally strips viewport noise (pan/rotate/zoom/fitView). It is a rewrite of a 2010 C# WinForms tool archived under `legacy/` (reference only — not built or tested). User-facing strings, docs and README are in Chinese.
+AbaqusPythonReader is a Windows-only PySide6 (Qt6) HUD app that tails an Abaqus CAE replay journal (`abaqus.rpy`) in real time, syntax-highlights it, and optionally strips viewport noise (pan/rotate/zoom/fitView). It is a rewrite of a 2010 C# WinForms tool archived under `legacy/` (reference only — not built or tested). User-facing strings, docs and README are in Chinese.
 
 UI text conventions (the maintainer explicitly wants a terse, professional tone):
 - Menu items and buttons name the action only (`自动换行`, `重置窗口位置`) — no parenthetical explanations, marketing words (一键/强烈推荐/极致), exclamation marks or emoji. Put details in tooltips.
@@ -21,7 +21,7 @@ python -m unittest discover tests            # what CI runs (Windows, Python 3.1
 pytest                                       # also works; testpaths configured in pyproject.toml
 pytest tests/test_cleaner.py::TestAbaqusCleaner::test_has_mask_statement   # single test
 python -m unittest tests.test_cleaner.TestAbaqusCleaner.test_has_mask_statement   # same, without pytest
-pyinstaller PythonReader_v2.spec             # one-file windowed exe -> dist/PythonReader_v2.exe
+pyinstaller AbaqusPythonReader.spec          # one-file windowed exe -> dist/AbaqusPythonReader.exe
 python scripts/build_icons.py                # regenerate app.ico + resources/icon_256.png from SVG_APP_LOGO
 ```
 
@@ -37,7 +37,7 @@ Data flow: `FileMonitor` → `MainWindow.raw_text_buffer` → `cleaner.clean_aba
 - **`abaqus_mode.py`** — journal recording modes (COORDINATE / INDEX / COMPRESSEDINDEX) in `MODE_INFO`. Writes/removes an `onCaeStartup()` block in the user-level `~/abaqus_v6.env` only (project-level env files were intentionally dropped), delimited by `HEADER_MARKER`/`FOOTER_MARKER` so it can be replaced idempotently without touching user content. Uses `ctypes` Win32 calls to detect/activate the Abaqus window for copy-and-focus.
 - **`highlighter.py`** — `THEMES` dict (`"dark"`/`"light"`) is the single source of editor colors, consumed by both `PythonHighlighter` and `CodeEditor` (line-number gutter). Includes an Abaqus API keyword list.
 - **`icons.py`** — Lucide icons stored as inline SVG strings (`SVG_*` constants), recolored and rasterized at runtime via `render_svg_to_icon`/`render_svg_to_pixmap`. Add icons here rather than as files. The app logo `SVG_APP_LOGO` is duplicated in `resources/icon.svg`; after changing it, update both and run `scripts/build_icons.py` to regenerate the static `app.ico` (exe/taskbar) and `icon_256.png` (README).
-- **`config.py`** — `ConfigManager` merges `DEFAULT_CONFIG` with `python_reader/config.json`, saving on every `set()`. Note the JSON file lives inside the package directory and is tracked in git, so running the app locally modifies a tracked file — avoid committing those incidental changes. New settings must be added to `DEFAULT_CONFIG`.
+- **`config.py`** — `ConfigManager` merges `DEFAULT_CONFIG` with `abaqus_python_reader/config.json`, saving on every `set()`. Note the JSON file lives inside the package directory and is tracked in git, so running the app locally modifies a tracked file — avoid committing those incidental changes. New settings must be added to `DEFAULT_CONFIG`.
 
 `run.py` and `main.py` both insert the project root into `sys.path`, so the app runs from source without installation. Package data (`resources/`, `app.ico`, `config.json`) is declared in `pyproject.toml`; the PyInstaller spec lists its own `datas` separately — update both when adding bundled files.
 

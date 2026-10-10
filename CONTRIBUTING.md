@@ -3,8 +3,8 @@
 ## 开发环境
 
 ```bash
-git clone https://github.com/example/PythonReader.git
-cd PythonReader
+git clone https://github.com/example/AbaqusPythonReader.git
+cd AbaqusPythonReader
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements-dev.txt
@@ -22,10 +22,10 @@ CI 使用上面的 unittest 命令；也可以直接运行 `pytest`。
 ## 打包
 
 ```bash
-pyinstaller PythonReader_v2.spec
+pyinstaller AbaqusPythonReader.spec
 ```
 
-输出为 `dist/PythonReader_v2.exe`。推送 `v*` 标签后，GitHub Actions 会自动打包并发布到 Releases。
+输出为 `dist/AbaqusPythonReader.exe`。推送 `v*` 标签后，GitHub Actions 会自动打包并发布到 Releases。
 
 ## 代码结构
 
@@ -44,5 +44,5 @@ pyinstaller PythonReader_v2.spec
 1. 从 `main` 创建分支，如 `fix/mask-parser`。
 2. 遵循 PEP 8。界面文字使用中文，保持简洁。
 3. 修改过滤、配置或文件监控逻辑时，在 `tests/` 中补充测试。
-4. 运行程序会改写 `python_reader/config.json`，提交前不要带上这类改动。
+4. 运行程序会改写 `abaqus_python_reader/config.json`，提交前不要带上这类改动。
 5. 在 PR 中说明改动内容和测试情况。

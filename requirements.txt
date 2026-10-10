@@ -1,2 +1,2 @@
-# Core runtime dependencies for PythonReader
+# Core runtime dependencies for AbaqusPythonReader
 PySide6>=6.5.0

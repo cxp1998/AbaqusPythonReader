@@ -1,8 +1,8 @@
 """Regenerates the static app icon files from SVG_APP_LOGO.
 
 Outputs:
-    python_reader/resources/icon_256.png  (README)
-    python_reader/app.ico                 (PyInstaller exe / taskbar)
+    abaqus_python_reader/resources/icon_256.png  (README)
+    abaqus_python_reader/app.ico                (PyInstaller exe / taskbar)
 
 Each ICO size is rendered from the vector source individually rather than
 downscaled from 256 px, so small sizes stay crisp.
@@ -22,11 +22,11 @@ from PySide6.QtCore import QBuffer, QByteArray, QIODevice, Qt
 from PySide6.QtGui import QGuiApplication, QImage, QPainter
 from PySide6.QtSvg import QSvgRenderer
 
-from python_reader.icons import SVG_APP_LOGO
+from abaqus_python_reader.icons import SVG_APP_LOGO
 
 ICO_SIZES = [16, 20, 24, 32, 40, 48, 64, 128, 256]
-PNG_PATH = ROOT / "python_reader" / "resources" / "icon_256.png"
-ICO_PATH = ROOT / "python_reader" / "app.ico"
+PNG_PATH = ROOT / "abaqus_python_reader" / "resources" / "icon_256.png"
+ICO_PATH = ROOT / "abaqus_python_reader" / "app.ico"
 
 
 def render(renderer: QSvgRenderer, size: int) -> Image.Image:

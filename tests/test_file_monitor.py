@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from PySide6.QtCore import QCoreApplication
-from python_reader.file_monitor import FileMonitor
+from abaqus_python_reader.file_monitor import FileMonitor
 
 
 class TestFileMonitor(unittest.TestCase):

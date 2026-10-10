@@ -62,8 +62,8 @@ MODE_INFO = {
     },
 }
 
-HEADER_MARKER = "# --- PythonReader Auto-Generated: Abaqus Journal Options ---"
-FOOTER_MARKER = "# --- End PythonReader Auto-Generated ---"
+HEADER_MARKER = "# --- AbaqusPythonReader Auto-Generated: Abaqus Journal Options ---"
+FOOTER_MARKER = "# --- End AbaqusPythonReader Auto-Generated ---"
 
 
 # -------------------------------------------------------------
@@ -205,7 +205,7 @@ def write_env_file_mode(filepath: Path, mode: str) -> Tuple[bool, str]:
         block = (
             f"\n\n{HEADER_MARKER}\n"
             f"def onCaeStartup():\n"
-            f"    # PythonReader: Auto configured {mode} journal mode\n"
+            f"    # AbaqusPythonReader: Auto configured {mode} journal mode\n"
             f"    try:\n"
             f"        session.journalOptions.setValues(\n"
             f"            replayGeometry={mode},\n"

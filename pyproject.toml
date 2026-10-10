@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "python-reader"
-version = "2.0.0"
+name = "abaqus-python-reader"
+version = "1.00"
 description = "ABAQUS CAE Python 命令流实时监视与辅助工具 (Real-time HUD monitor for Abaqus CAE command stream)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
-    { name = "PythonReader Contributors" }
+    { name = "AbaqusPythonReader Contributors" }
 ]
 keywords = [
     "abaqus",
@@ -49,18 +49,18 @@ dev = [
 ]
 
 [project.scripts]
-python-reader = "python_reader.main:main"
+abaqus-python-reader = "abaqus_python_reader.main:main"
 
 [project.urls]
-Homepage = "https://github.com/example/PythonReader"
-Repository = "https://github.com/example/PythonReader.git"
-"Bug Tracker" = "https://github.com/example/PythonReader/issues"
+Homepage = "https://github.com/example/AbaqusPythonReader"
+Repository = "https://github.com/example/AbaqusPythonReader.git"
+"Bug Tracker" = "https://github.com/example/AbaqusPythonReader/issues"
 
 [tool.setuptools.packages.find]
-include = ["python_reader*"]
+include = ["abaqus_python_reader*"]
 
 [tool.setuptools.package-data]
-python_reader = ["resources/*", "app.ico", "config.json"]
+abaqus_python_reader = ["resources/*", "app.ico", "config.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
