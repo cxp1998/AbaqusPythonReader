@@ -22,6 +22,7 @@ pytest                                       # also works; testpaths configured 
 pytest tests/test_cleaner.py::TestAbaqusCleaner::test_has_mask_statement   # single test
 python -m unittest tests.test_cleaner.TestAbaqusCleaner.test_has_mask_statement   # same, without pytest
 pyinstaller PythonReader_v2.spec             # one-file windowed exe -> dist/PythonReader_v2.exe
+python scripts/build_icons.py                # regenerate app.ico + resources/icon_256.png from SVG_APP_LOGO
 ```
 
 There is no linter/formatter configured. Pushing a `v*` tag triggers `.github/workflows/release.yml`, which builds the exe and attaches it to a GitHub release.
@@ -35,7 +36,7 @@ Data flow: `FileMonitor` → `MainWindow.raw_text_buffer` → `cleaner.clean_aba
 - **`cleaner.py`** — pure functions, no Qt. `split_python_statements` is a hand-written tokenizer tracking paren/bracket/brace depth and string/triple-quote state so multi-line calls are treated as one statement; `VIEWPORT_REGEX` then drops whole statements. Add new viewport patterns to `VIEWPORT_KEYWORDS`.
 - **`abaqus_mode.py`** — journal recording modes (COORDINATE / INDEX / COMPRESSEDINDEX) in `MODE_INFO`. Writes/removes an `onCaeStartup()` block in the user-level `~/abaqus_v6.env` only (project-level env files were intentionally dropped), delimited by `HEADER_MARKER`/`FOOTER_MARKER` so it can be replaced idempotently without touching user content. Uses `ctypes` Win32 calls to detect/activate the Abaqus window for copy-and-focus.
 - **`highlighter.py`** — `THEMES` dict (`"dark"`/`"light"`) is the single source of editor colors, consumed by both `PythonHighlighter` and `CodeEditor` (line-number gutter). Includes an Abaqus API keyword list.
-- **`icons.py`** — Lucide icons stored as inline SVG strings (`SVG_*` constants), recolored and rasterized at runtime via `render_svg_to_icon`/`render_svg_to_pixmap`. Add icons here rather than as files.
+- **`icons.py`** — Lucide icons stored as inline SVG strings (`SVG_*` constants), recolored and rasterized at runtime via `render_svg_to_icon`/`render_svg_to_pixmap`. Add icons here rather than as files. The app logo `SVG_APP_LOGO` is duplicated in `resources/icon.svg`; after changing it, update both and run `scripts/build_icons.py` to regenerate the static `app.ico` (exe/taskbar) and `icon_256.png` (README).
 - **`config.py`** — `ConfigManager` merges `DEFAULT_CONFIG` with `python_reader/config.json`, saving on every `set()`. Note the JSON file lives inside the package directory and is tracked in git, so running the app locally modifies a tracked file — avoid committing those incidental changes. New settings must be added to `DEFAULT_CONFIG`.
 
 `run.py` and `main.py` both insert the project root into `sys.path`, so the app runs from source without installation. Package data (`resources/`, `app.ico`, `config.json`) is declared in `pyproject.toml`; the PyInstaller spec lists its own `datas` separately — update both when adding bundled files.

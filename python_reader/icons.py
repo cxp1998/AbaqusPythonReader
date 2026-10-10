@@ -169,122 +169,51 @@ SVG_SHIELD_CHECK = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24
 
 
 # -------------------------------------------------------------
-# Unified App Logo (Matches User Layout Exactly)
-# Top-Left: Authentic Abaqus CAE tensile specimen (no white line)
-# Bottom-Right: Official Python dual-snake logo
-# Top-Right & Bottom-Left: Interactive L-shaped bent arrows
-# Transparent background, no blue outer border
+# Unified App Logo
+# Deep indigo rounded tile, original Abaqus CAE glyph as the hero,
+# terminal ">_" badge overlapping the lower-right corner.
+# Keep in sync with resources/icon.svg; regenerate app.ico and
+# icon_256.png with scripts/build_icons.py after editing.
 # -------------------------------------------------------------
 SVG_APP_LOGO = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
   <defs>
-    <!-- Arrow color: Deep teal-blue from user sketch -->
-    <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1b729b"/>
-      <stop offset="100%" stop-color="#114e6d"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f2e6b"/>
+      <stop offset="1" stop-color="#0e0c26"/>
     </linearGradient>
-
-    <!-- Official Python Gradients -->
-    <linearGradient id="py_blue" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#387eb8"/>
-      <stop offset="100%" stop-color="#2a5f8d"/>
+    <linearGradient id="abq" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4e4d8e"/>
+      <stop offset=".18" stop-color="#6968aa"/>
+      <stop offset=".5" stop-color="#c9c5f2"/>
+      <stop offset=".82" stop-color="#6968aa"/>
+      <stop offset="1" stop-color="#4e4d8e"/>
     </linearGradient>
-    <linearGradient id="py_yellow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffe052"/>
-      <stop offset="100%" stop-color="#f7b318"/>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".16"/>
+      <stop offset=".5" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
-
-    <!-- Authentic Abaqus 3D Specimen Gradient -->
-    <linearGradient id="abq_grad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#4e4d8e"/>
-      <stop offset="18%" stop-color="#6968aa"/>
-      <stop offset="50%" stop-color="#b0ace0"/>
-      <stop offset="82%" stop-color="#6968aa"/>
-      <stop offset="100%" stop-color="#4e4d8e"/>
+    <linearGradient id="badge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#211f52"/>
+      <stop offset="1" stop-color="#0c0a22"/>
     </linearGradient>
-
-    <!-- Abaqus Tensile Specimen (Exact geometry from original CAE icon) -->
-    <g id="abaqus_logo">
-      <!-- Upper Half -->
-      <path fill="url(#abq_grad)"
-            d="M 17 0
-               H 31
-               V 8.73
-               A 22 14 0 0 1 46 22
-               H 2
-               A 22 14 0 0 1 17 8.73
-               Z"/>
-      <!-- Lower Half (Clean fracture gap between y=22 and y=26) -->
-      <path fill="url(#abq_grad)"
-            d="M 2 26
-               H 46
-               A 22 14 0 0 1 31 39.27
-               V 48
-               H 17
-               V 39.27
-               A 22 14 0 0 1 2 26
-               Z"/>
-    </g>
-
-    <!-- Python Official PSF Interlocking Snakes -->
-    <g id="python_logo">
-      <!-- Blue Snake -->
-      <path fill="url(#py_blue)" stroke="#ffffff" stroke-width="2.6" stroke-linejoin="round"
-            d="M 55.023 0.2 C 29.052 0.2 28.773 10.281 28.773 12.356 L 28.773 24.95 L 55.523 24.95 L 55.523 28.731 L 18.148 28.731 C 10.199 28.731 0.21 33.564 0.21 54.981 C 0.21 74.654 8.002 82.262 15.866 82.262 L 25.21 82.262 L 25.21 69.137 C 25.21 63.646 27.931 53.481 40.616 53.481 L 67.147 53.481 C 71.049 53.481 82.053 51.785 82.053 39.075 L 82.053 14.856 C 82.053 11.626 81.514 0.2 55.023 0.2 Z"/>
-      <!-- Yellow Snake -->
-      <path fill="url(#py_yellow)" stroke="#ffffff" stroke-width="2.6" stroke-linejoin="round"
-            d="M 55.397 110.2 C 81.356 110.2 81.679 99.929 81.679 98.044 L 81.679 85.45 L 54.897 85.45 L 54.897 81.669 L 92.272 81.669 C 100.281 81.669 110.21 76.715 110.21 55.419 C 110.21 32.097 99.672 28.138 94.554 28.138 L 85.21 28.138 L 85.21 41.263 C 85.21 46.754 82.579 56.919 69.804 56.919 L 43.272 56.919 C 39.38 56.919 28.366 58.815 28.366 71.325 L 28.366 95.544 C 28.366 100.697 31.562 110.2 55.397 110.2 Z"/>
-      <!-- Eyes -->
-      <circle cx="40.27" cy="13.2" r="4.8" fill="#ffffff"/>
-      <circle cx="70.15" cy="96.6" r="4.8" fill="#ffffff"/>
-    </g>
   </defs>
 
-  <!-- Top-Left: Abaqus Specimen (Centered at 62, 62) -->
-  <g transform="translate(14, 14) scale(2.0)">
-    <use href="#abaqus_logo"/>
+  <!-- Tile -->
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#bg)"/>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#gloss)"/>
+  <rect x="8.5" y="8.5" width="239" height="239" rx="55.5" fill="none" stroke="#ffffff" stroke-opacity=".12"/>
+
+  <!-- Original Abaqus CAE glyph (geometry unchanged) -->
+  <g transform="translate(40 36) scale(3.1)">
+    <path fill="url(#abq)" d="M17 0H31V8.73A22 14 0 0 1 46 22H2A22 14 0 0 1 17 8.73Z"/>
+    <path fill="url(#abq)" d="M2 26H46A22 14 0 0 1 31 39.27V48H17V39.27A22 14 0 0 1 2 26Z"/>
   </g>
 
-  <!-- Bottom-Right: Python Logo (Centered at 194, 194) -->
-  <g transform="translate(145.6, 145.6) scale(0.88)">
-    <use href="#python_logo"/>
-  </g>
-
-  <!-- Connecting Interactive Dual-Head L-Arrows (180-deg rotational symmetry) -->
-  <g fill="url(#arrowGrad)" stroke="#082b3d" stroke-width="2.6" stroke-linejoin="round">
-    <!-- Top-Right L-Arrow -->
-    <path d="
-      M 116 36
-      L 140 18
-      L 140 26
-      L 224 26
-      L 224 116
-      L 232 116
-      L 214 140
-      L 196 116
-      L 204 116
-      L 204 46
-      L 140 46
-      L 140 54
-      Z
-    "/>
-
-    <!-- Bottom-Left L-Arrow -->
-    <path d="
-      M 140 220
-      L 116 238
-      L 116 230
-      L 32 230
-      L 32 140
-      L 24 140
-      L 42 116
-      L 60 140
-      L 52 140
-      L 52 210
-      L 116 210
-      L 116 202
-      Z
-    "/>
-  </g>
+  <!-- Terminal badge: knockout ring + body + prompt -->
+  <rect x="120" y="128" width="120" height="104" rx="30" fill="#13112f"/>
+  <rect x="128" y="136" width="104" height="88" rx="22" fill="url(#badge)" stroke="#a5b4fc" stroke-width="5"/>
+  <path d="M152 160L172 180L152 200" fill="none" stroke="#a5b4fc" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="182" y="191" width="34" height="11" rx="5.5" fill="#22d3ee"/>
 </svg>'''
 
 
