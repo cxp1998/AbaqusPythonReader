@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-reader"
+version = "2.0.0"
+description = "ABAQUS CAE Python 命令流实时监视与辅助工具 (Real-time HUD monitor for Abaqus CAE command stream)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "PythonReader Contributors" }
+]
+keywords = [
+    "abaqus",
+    "cae",
+    "finite-element-analysis",
+    "python",
+    "pyside6",
+    "qt",
+    "hud",
+    "monitoring",
+    "code-stream"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Win32 (MS Windows)",
+    "Intended Audience :: Manufacturing",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: User Interfaces",
+]
+dependencies = [
+    "PySide6>=6.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pyinstaller>=6.0.0",
+    "pillow>=10.0.0",
+]
+
+[project.scripts]
+python-reader = "python_reader.main:main"
+
+[project.urls]
+Homepage = "https://github.com/example/PythonReader"
+Repository = "https://github.com/example/PythonReader.git"
+"Bug Tracker" = "https://github.com/example/PythonReader/issues"
+
+[tool.setuptools.packages.find]
+include = ["python_reader*"]
+
+[tool.setuptools.package-data]
+python_reader = ["resources/*", "app.ico", "config.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

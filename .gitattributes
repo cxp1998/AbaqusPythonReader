@@ -1,0 +1,18 @@
+# Auto detect text files and perform LF normalization
+* text=auto eol=lf
+
+# Windows scripts
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Visual Studio files
+*.sln text eol=crlf
+*.csproj text eol=crlf
+
+# Binary files
+*.png binary
+*.ico binary
+*.exe binary
+*.dll binary
+*.zip binary

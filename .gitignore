@@ -1,0 +1,79 @@
+# =========================
+# Byte-compiled / optimized
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# =========================
+# Virtual Environments
+# =========================
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# =========================
+# Packaging & PyInstaller
+# =========================
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+*.manifest
+*.spec.bak
+
+# Exclude locally generated large executables
+*.exe
+# Allow legacy original executable to be tracked
+!legacy/PythonReader_2010.exe
+
+# =========================
+# Testing & Coverage
+# =========================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# =========================
+# IDE & Editors
+# =========================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# =========================
+# C# / Visual Studio (Legacy)
+# =========================
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.pdb
+
+# =========================
+# OS & System
+# =========================
+Thumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# =========================
+# Local Runtime Outputs
+# =========================
+abaqus_v6.env
+*.rpy*
+*.rec
+*.log

@@ -1,0 +1,2 @@
+# Core runtime dependencies for PythonReader
+PySide6>=6.5.0
