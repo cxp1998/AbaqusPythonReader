@@ -23,7 +23,7 @@
 
 ## 使用
 
-从 [Releases](https://github.com/example/AbaqusPythonReader/releases) 下载 `AbaqusPythonReader.exe` 直接运行，或从源码启动（Python 3.10+）：
+从 [Releases](https://github.com/cxp1998/AbaqusPythonReader/releases) 下载 `AbaqusPythonReader.exe` 直接运行，或从源码启动（Python 3.10+）：
 
 ```bash
 python -m venv .venv

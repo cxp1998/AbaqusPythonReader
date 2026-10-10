@@ -3,7 +3,7 @@
 ## 开发环境
 
 ```bash
-git clone https://github.com/example/AbaqusPythonReader.git
+git clone https://github.com/cxp1998/AbaqusPythonReader.git
 cd AbaqusPythonReader
 python -m venv .venv
 .venv\Scripts\activate

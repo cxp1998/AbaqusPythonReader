@@ -52,9 +52,9 @@ dev = [
 abaqus-python-reader = "abaqus_python_reader.main:main"
 
 [project.urls]
-Homepage = "https://github.com/example/AbaqusPythonReader"
-Repository = "https://github.com/example/AbaqusPythonReader.git"
-"Bug Tracker" = "https://github.com/example/AbaqusPythonReader/issues"
+Homepage = "https://github.com/cxp1998/AbaqusPythonReader"
+Repository = "https://github.com/cxp1998/AbaqusPythonReader.git"
+"Bug Tracker" = "https://github.com/cxp1998/AbaqusPythonReader/issues"
 
 [tool.setuptools.packages.find]
 include = ["abaqus_python_reader*"]
