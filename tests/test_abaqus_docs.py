@@ -60,11 +60,11 @@ def test_nonexistent_symbol_returns_none():
     assert mgr.format_tooltip_html("definitely_not_an_abaqus_symbol_xyz") is None
 
 
-def test_editor_hover_event():
+def test_editor_click_and_cursor_events():
     import sys
     from PySide6.QtWidgets import QApplication
-    from PySide6.QtGui import QHelpEvent
-    from PySide6.QtCore import QEvent
+    from PySide6.QtGui import QHelpEvent, QMouseEvent
+    from PySide6.QtCore import QEvent, Qt, QPoint
     from abaqus_python_reader.editor import CodeEditor
 
     app = QApplication.instance() or QApplication(sys.argv)
@@ -78,11 +78,66 @@ def test_editor_hover_event():
     cursor.setPosition(idx + 3)
     pos = editor.cursorRect(cursor).center()
 
+    # 1. Hover event does NOT show tooltip (hover tooltip is disabled)
     help_event = QHelpEvent(QEvent.Type.ToolTip, pos, editor.mapToGlobal(pos))
     handled = editor.viewportEvent(help_event)
     assert handled is True
+    assert not editor.type_hint_popup.isVisible()
 
-    # Test disabled
+    # 2. Mouse move over type hint symbol sets PointingHandCursor
+    move_event = QMouseEvent(
+        QEvent.Type.MouseMove, pos, editor.mapToGlobal(pos),
+        Qt.MouseButton.NoButton, Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier
+    )
+    editor.mouseMoveEvent(move_event)
+    assert editor.viewport().cursor().shape() == Qt.CursorShape.PointingHandCursor
+
+    # 3. Left-click on BaseSolidExtrude shows TypeHintPopup
+    click_event = QMouseEvent(
+        QEvent.Type.MouseButtonRelease, pos, editor.mapToGlobal(pos),
+        Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier
+    )
+    editor.mouseReleaseEvent(click_event)
+    assert editor.type_hint_popup.isVisible()
+    assert editor.type_hint_popup._current_word == "BaseSolidExtrude"
+
+    # 4. Clicking blank area dismisses popup
+    blank_pos = QPoint(10, 100)
+    blank_event = QMouseEvent(
+        QEvent.Type.MouseButtonRelease, blank_pos, editor.mapToGlobal(blank_pos),
+        Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier
+    )
+    editor.mouseReleaseEvent(blank_event)
+    assert not editor.type_hint_popup.isVisible()
+
+    # 5. Disable Type Hints
     editor.set_hover_doc_enabled(False)
     assert editor.hover_doc_enabled is False
+    assert editor.highlighter.type_hints_enabled is False
+
+
+def test_highlighter_type_hints_background():
+    import sys
+    from PySide6.QtWidgets import QApplication, QTextEdit
+    from abaqus_python_reader.highlighter import PythonHighlighter, THEMES
+
+    app = QApplication.instance() or QApplication(sys.argv)
+    te = QTextEdit()
+    hl = PythonHighlighter(te.document(), theme_name="dark", type_hints_enabled=True)
+
+    # Verify colors exist in palettes
+    assert "type_hint_bg" in THEMES["dark"]
+    assert "type_hint_fg" in THEMES["dark"]
+    assert "type_hint_bg" in THEMES["light"]
+    assert "type_hint_fg" in THEMES["light"]
+
+    # Verify type_hint_fmt has background color set
+    assert hl.type_hint_fmt.background().color().isValid()
+    assert hl.type_hint_fmt.background().color().name() == THEMES["dark"]["type_hint_bg"]
+
+    # Test toggling
+    hl.set_type_hints_enabled(False)
+    assert hl.type_hints_enabled is False
+    hl.set_type_hints_enabled(True)
+    assert hl.type_hints_enabled is True
 

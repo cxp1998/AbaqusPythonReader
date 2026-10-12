@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "abaqus-python-reader"
-version = "1.04"
+version = "1.05"
 description = "Real-time HUD monitor for Abaqus CAE command stream (ABAQUS CAE Python 命令流实时监视与辅助工具)"
 readme = "README.md"
 requires-python = ">=3.10"

@@ -1,6 +1,7 @@
 import re
 from PySide6.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor, QFont
 from PySide6.QtCore import QRegularExpression
+from .abaqus_docs import AbaqusDocManager
 
 # Color palettes
 THEMES = {
@@ -24,6 +25,8 @@ THEMES = {
         "border": "#313244",
         "button_bg": "#313244",
         "button_hover": "#45475a",
+        "type_hint_bg": "#1e3a5f",  # Deep navy badge background
+        "type_hint_fg": "#7dd3fc",  # Sky light text
     },
     "light": {
         "background": "#ffffff",
@@ -45,6 +48,8 @@ THEMES = {
         "border": "#e5e7eb",
         "button_bg": "#f3f4f6",
         "button_hover": "#e5e7eb",
+        "type_hint_bg": "#bae6fd",  # Sky-200 pastel blue background
+        "type_hint_fg": "#0369a1",  # Deep sky blue text
     }
 }
 
@@ -79,10 +84,14 @@ ABAQUS_KEYWORDS = [
 
 
 class PythonHighlighter(QSyntaxHighlighter):
-    def __init__(self, document, theme_name="dark"):
+    def __init__(self, document, theme_name="dark", type_hints_enabled=True):
         super().__init__(document)
         self.theme_name = theme_name
+        self.type_hints_enabled = type_hints_enabled
+        self.doc_manager = AbaqusDocManager.get_instance()
+        self.ident_pattern = QRegularExpression(r"\b[A-Za-z_][A-Za-z0-9_]*\b")
         self.highlighting_rules = []
+        self.string_comment_rules = []
         self._init_rules()
 
     def set_theme(self, theme_name):
@@ -90,8 +99,14 @@ class PythonHighlighter(QSyntaxHighlighter):
         self._init_rules()
         self.rehighlight()
 
+    def set_type_hints_enabled(self, enabled: bool):
+        if self.type_hints_enabled != enabled:
+            self.type_hints_enabled = enabled
+            self.rehighlight()
+
     def _init_rules(self):
         self.highlighting_rules.clear()
+        self.string_comment_rules.clear()
         colors = THEMES[self.theme_name]
 
         def create_format(color_hex, bold=False, italic=False):
@@ -112,6 +127,12 @@ class PythonHighlighter(QSyntaxHighlighter):
         decorator_fmt = create_format(colors["decorator"])
         self.comment_fmt = create_format(colors["comment"], italic=True)
         self.string_fmt = create_format(colors["string"])
+
+        # Type hints badge format (functions/symbols with documentation)
+        self.type_hint_fmt = QTextCharFormat()
+        self.type_hint_fmt.setBackground(QColor(colors.get("type_hint_bg", "#1e3a5f")))
+        self.type_hint_fmt.setForeground(QColor(colors.get("type_hint_fg", "#7dd3fc")))
+        self.type_hint_fmt.setFontWeight(QFont.Weight.DemiBold)
 
         # 1. Keywords
         for kw in PYTHON_KEYWORDS:
@@ -145,14 +166,14 @@ class PythonHighlighter(QSyntaxHighlighter):
         self.highlighting_rules.append((num_pattern, number_fmt))
 
         # 8. Single and Double Quoted Strings (single line)
-        str_single = QRegularExpression(r"'[^'\\]*(\\.[^'\\]*)*'")
-        str_double = QRegularExpression(r'"[^"\\]*(\\.[^"\\]*)*"')
-        self.highlighting_rules.append((str_single, self.string_fmt))
-        self.highlighting_rules.append((str_double, self.string_fmt))
+        self.str_single = QRegularExpression(r"'[^'\\]*(\\.[^'\\]*)*'")
+        self.str_double = QRegularExpression(r'"[^"\\]*(\\.[^"\\]*)*"')
+        self.string_comment_rules.append((self.str_single, self.string_fmt))
+        self.string_comment_rules.append((self.str_double, self.string_fmt))
 
         # 9. Single-line Comments (# ...)
-        comment_pattern = QRegularExpression(r"#.*")
-        self.highlighting_rules.append((comment_pattern, self.comment_fmt))
+        self.comment_pattern = QRegularExpression(r"#.*")
+        self.string_comment_rules.append((self.comment_pattern, self.comment_fmt))
 
         # Multi-line string delimiters
         self.tri_single_start = QRegularExpression(r"'''")
@@ -161,14 +182,30 @@ class PythonHighlighter(QSyntaxHighlighter):
         self.tri_double_end = QRegularExpression(r'"""')
 
     def highlightBlock(self, text):
-        # Apply standard single-line rules
+        # 1. Base syntax highlighting (keywords, builtins, numbers, defs)
         for pattern, fmt in self.highlighting_rules:
             match_iterator = pattern.globalMatch(text)
             while match_iterator.hasNext():
                 match = match_iterator.next()
                 self.setFormat(match.capturedStart(), match.capturedLength(), fmt)
 
-        # Handle multi-line strings (triple quotes)
+        # 2. Highlight symbols with Type Hints using distinct background color
+        if self.type_hints_enabled:
+            match_iterator = self.ident_pattern.globalMatch(text)
+            while match_iterator.hasNext():
+                match = match_iterator.next()
+                word = match.captured()
+                if self.doc_manager.has_symbol(word):
+                    self.setFormat(match.capturedStart(), match.capturedLength(), self.type_hint_fmt)
+
+        # 3. Apply strings and comments (override type hint badge inside strings/comments)
+        for pattern, fmt in self.string_comment_rules:
+            match_iterator = pattern.globalMatch(text)
+            while match_iterator.hasNext():
+                match = match_iterator.next()
+                self.setFormat(match.capturedStart(), match.capturedLength(), fmt)
+
+        # 4. Multi-line strings (triple quotes)
         self.setCurrentBlockState(0)
         self._highlight_multiline(text, self.tri_double_start, self.tri_double_end, 1)
         self._highlight_multiline(text, self.tri_single_start, self.tri_single_end, 2)
