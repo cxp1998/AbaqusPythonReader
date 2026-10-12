@@ -19,6 +19,7 @@ DEFAULT_CONFIG = {
     "window_width": 780,
     "window_height": 320,
     "language": "en",           # "en" or "zh"
+    "hover_doc": True,          # True: show Abaqus API doc on hover
 }
 
 CONFIG_FILE = Path(__file__).resolve().parent / "config.json"

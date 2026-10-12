@@ -29,6 +29,7 @@ A real-time HUD desktop tool for monitoring the Abaqus/CAE command stream (`abaq
 - **Non-blocking Monitoring**: Shared read-only polling that never locks or conflicts with Abaqus journal writes.
 - **HUD Floating Window**: Always-on-top, configurable opacity, frameless window, right-click dragging, and smooth edge resizing.
 - **Geometry Recording Modes**: Quick switching between Coordinate (`COORDINATE`), Index (`INDEX`), and Mask (`COMPRESSEDINDEX`) modes, with support for persisting to `~/abaqus_v6.env` as startup default.
+- **Abaqus API Tooltips (Hover Docs)**: Hover over any Abaqus function, class, or constant (e.g. `BaseSolidExtrude`, `seedPart`, `StaticStep`, `THREE_D`) to view instant signatures, parameter descriptions, and docstrings.
 - **Multilingual Support (i18n)**: English (default) and Simplified Chinese with instant runtime switching.
 
 ### Getting Started
@@ -68,6 +69,7 @@ Rewritten from the original ABAQUS-PythonReader developed in 2010 by Dr. Jiao ([
 - **只读非阻塞监控**：只读轮询文件，不影响 Abaqus 写入日记。
 - **HUD 悬浮窗**：置顶、透明度调节、无边框设计、鼠标右键拖动、边缘自由缩放。
 - **几何录制模式切换**：支持坐标（`COORDINATE`）、索引（`INDEX`）、掩码（`COMPRESSEDINDEX`）模式快速切换，并可写入用户目录下的 `abaqus_v6.env` 设为启动默认。
+- **Abaqus API 悬停文档速查**：鼠标悬停在任意 Abaqus 函数、类或符号常量（如 `BaseSolidExtrude`、`seedPart`、`StaticStep`、`THREE_D` 等）上，即刻弹出参数签名与官方用法文档。
 - **多语言支持（i18n）**：默认英文，支持中英文实时无缝切换。
 
 ### 使用方法

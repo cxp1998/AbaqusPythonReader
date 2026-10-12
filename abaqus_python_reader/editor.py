@@ -1,7 +1,8 @@
-from PySide6.QtWidgets import QPlainTextEdit, QWidget, QTextEdit
-from PySide6.QtGui import QPainter, QColor, QTextFormat, QFont, QTextCursor
-from PySide6.QtCore import Qt, QRect, QSize
+from PySide6.QtWidgets import QPlainTextEdit, QWidget, QTextEdit, QToolTip
+from PySide6.QtGui import QPainter, QColor, QTextFormat, QFont, QTextCursor, QHelpEvent
+from PySide6.QtCore import Qt, QRect, QSize, QEvent
 from .highlighter import PythonHighlighter, THEMES
+from .abaqus_docs import AbaqusDocManager
 
 
 class LineNumberArea(QWidget):
@@ -22,6 +23,8 @@ class CodeEditor(QPlainTextEdit):
         self.theme_name = theme_name
         self.show_line_numbers = show_line_numbers
         self.auto_scroll = True
+        self.hover_doc_enabled = True
+        self.doc_manager = AbaqusDocManager.get_instance()
 
         self.line_number_area = LineNumberArea(self)
         self.highlighter = PythonHighlighter(self.document(), theme_name)
@@ -114,9 +117,47 @@ class CodeEditor(QPlainTextEdit):
         self.update_line_number_area_width(0)
         self.line_number_area.setVisible(visible)
 
+    def set_hover_doc_enabled(self, enabled: bool):
+        self.hover_doc_enabled = enabled
+        if not enabled:
+            QToolTip.hideText()
+
+    def viewportEvent(self, event):
+        if event.type() == QEvent.Type.ToolTip and self.hover_doc_enabled:
+            help_event: QHelpEvent = event
+            pos = help_event.pos()
+            cursor = self.cursorForPosition(pos)
+            cursor.select(QTextCursor.SelectionType.WordUnderCursor)
+            word = cursor.selectedText().strip()
+
+            if word and self.doc_manager.has_symbol(word):
+                # Calculate bounding rect of the selected word
+                start_cursor = QTextCursor(cursor)
+                start_cursor.setPosition(cursor.selectionStart())
+                start_rect = self.cursorRect(start_cursor)
+
+                end_cursor = QTextCursor(cursor)
+                end_cursor.setPosition(cursor.selectionEnd())
+                end_rect = self.cursorRect(end_cursor)
+
+                word_rect = start_rect.united(end_rect)
+                if word_rect.adjusted(-4, -4, 4, 4).contains(pos):
+                    is_dark = (self.theme_name == "dark")
+                    html_tip = self.doc_manager.format_tooltip_html(word, dark_theme=is_dark)
+                    if html_tip:
+                        QToolTip.showText(help_event.globalPos(), html_tip, self.viewport(), word_rect)
+                        return True
+
+            QToolTip.hideText()
+            event.ignore()
+            return True
+
+        return super().viewportEvent(event)
+
     def scroll_to_bottom(self):
         if self.auto_scroll:
             cursor = self.textCursor()
             cursor.movePosition(QTextCursor.MoveOperation.End)
             self.setTextCursor(cursor)
             self.ensureCursorVisible()
+

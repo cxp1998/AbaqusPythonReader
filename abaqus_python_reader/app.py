@@ -232,6 +232,7 @@ class MainWindow(QMainWindow):
         show_lines = self.config.get("show_line_numbers", True)
         self.editor = CodeEditor(self, theme_name=theme, show_line_numbers=show_lines)
         self.editor.auto_scroll = self.config.get("auto_scroll", True)
+        self.editor.set_hover_doc_enabled(self.config.get("hover_doc", True))
         self.editor.setLineWrapMode(
             CodeEditor.LineWrapMode.WidgetWidth if self.config.get("word_wrap", True)
             else CodeEditor.LineWrapMode.NoWrap
@@ -543,6 +544,7 @@ class MainWindow(QMainWindow):
         menu.add_toggle(icon(SVG_WRAP), tr("menu_word_wrap"), self.config.get("word_wrap", True), lambda: self._toggle_word_wrap())
         menu.add_toggle(icon(SVG_SCROLL), tr("menu_auto_scroll"), self.config.get("auto_scroll", True), lambda: self._toggle_auto_scroll())
         menu.add_toggle(icon(SVG_HASH), tr("menu_line_numbers"), self.config.get("show_line_numbers", True), lambda: self._toggle_line_numbers())
+        menu.add_toggle(icon(SVG_BOOK_OPEN), tr("menu_hover_doc"), self.config.get("hover_doc", True), lambda: self._toggle_hover_doc())
         menu.add_toggle(icon(SVG_FRAME), tr("menu_frameless"), self.config.get("frameless", True), lambda: self._toggle_frameless())
 
         # Opacity submenu
@@ -613,6 +615,14 @@ class MainWindow(QMainWindow):
         self.editor.set_line_numbers_visible(checked)
         status = tr("state_on") if checked else tr("state_off")
         self.show_toast(tr("toast_line_numbers", state=status), is_active=checked)
+
+    def _toggle_hover_doc(self, checked=None):
+        if checked is None or isinstance(checked, QPoint) or not isinstance(checked, bool):
+            checked = not self.config.get("hover_doc", True)
+        self.config.set("hover_doc", checked)
+        self.editor.set_hover_doc_enabled(checked)
+        status = tr("state_on") if checked else tr("state_off")
+        self.show_toast(tr("toast_hover_doc", state=status), is_active=checked)
 
     def _toggle_frameless(self, checked=None):
         if checked is None or isinstance(checked, QPoint) or not isinstance(checked, bool):
@@ -800,6 +810,13 @@ class MainWindow(QMainWindow):
                 height: 1px;
                 background-color: {colors["border"]};
                 margin: 4px 6px;
+            }}
+            QToolTip {{
+                background-color: {colors["editor_bg"]};
+                color: {colors["text"]};
+                border: 1px solid {colors["border"]};
+                border-radius: 6px;
+                padding: 0px;
             }}
         """)
 

@@ -78,3 +78,5 @@ abaqus_v6.env
 !examples/*.rpy
 *.rec
 *.log
+uv.lock
+

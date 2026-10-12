@@ -17,6 +17,7 @@ class TestConfigManager(unittest.TestCase):
         self.assertEqual(cfg.get("font_family"), DEFAULT_CONFIG["font_family"])
         self.assertEqual(cfg.get("opacity"), DEFAULT_CONFIG["opacity"])
         self.assertEqual(cfg.get("language"), "en")
+        self.assertTrue(cfg.get("hover_doc"))
 
     def test_set_and_persist(self):
         cfg = ConfigManager(filepath=self.config_path)

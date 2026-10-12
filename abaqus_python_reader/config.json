@@ -10,9 +10,10 @@
   "show_line_numbers": true,
   "font_family": "Consolas",
   "font_size": 10,
-  "window_x": 938,
-  "window_y": 524,
+  "window_x": 200,
+  "window_y": 150,
   "window_width": 780,
   "window_height": 320,
-  "language": "en"
+  "language": "en",
+  "hover_doc": true
 }
