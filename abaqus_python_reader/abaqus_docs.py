@@ -4,7 +4,18 @@ Loads symbol documentation extracted from abqpy (compressed JSON) and
 renders styled HTML tooltips for the code editor.
 """
 import gzip
-import html
+try:
+    import html
+except ImportError:
+    # Fallback in case html module is excluded or unavailable in minimal runtime
+    class _HtmlFallback:
+        @staticmethod
+        def escape(s: str, quote: bool = True) -> str:
+            s = str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            if quote:
+                s = s.replace('"', "&quot;").replace("'", "&#x27;")
+            return s
+    html = _HtmlFallback()
 import json
 from pathlib import Path
 from typing import Optional, List, Dict, Any

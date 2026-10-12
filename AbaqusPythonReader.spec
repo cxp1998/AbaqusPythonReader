@@ -26,7 +26,6 @@ excluded_modules = [
     'unittest',
     'pydoc',
     'email',
-    'html',
     'http',
     'xmlrpc',
     'bz2',
