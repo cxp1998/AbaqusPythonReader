@@ -102,7 +102,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         # About Dialog
         "about_title": "About",
         "about_desc": "Abaqus/CAE command stream real-time viewer",
-        "about_author": "Rewritten from ABAQUS-PythonReader (2010) by Dr. Jiao (<a href='mailto:ck436@126.com'>ck436@126.com</a>).",
+        "about_author": "Rewritten from ABAQUS-PythonReader (2010) by Dr. Jiao (<a href='mailto:ck436@126.com'>ck436@126.com</a>).<br>API documentation derived from <a href='https://github.com/haiiliin/abqpy'>abqpy</a> (Hailin Wang).",
         "about_license": "MIT License",
 
         # Tray Menu
@@ -238,7 +238,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         # About Dialog
         "about_title": "关于",
         "about_desc": "Abaqus/CAE 命令流实时查看工具",
-        "about_author": "基于焦博士（<a href='mailto:ck436@126.com'>ck436@126.com</a>）2010 年开发的 ABAQUS-PythonReader 重写。",
+        "about_author": "基于焦博士（<a href='mailto:ck436@126.com'>ck436@126.com</a>）2010 年开发的 ABAQUS-PythonReader 重写。<br>API 接口文档来源于 <a href='https://github.com/haiiliin/abqpy'>abqpy</a>（Hailin Wang）。",
         "about_license": "MIT License",
 
         # Tray Menu

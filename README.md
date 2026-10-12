@@ -49,7 +49,8 @@ For development, testing, and packaging, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Acknowledgments
 
-Rewritten from the original ABAQUS-PythonReader developed in 2010 by Dr. Jiao ([ck436@126.com](mailto:ck436@126.com)). The legacy application and source code are archived under [`legacy/`](legacy/).
+- **Dr. Jiao** ([ck436@126.com](mailto:ck436@126.com)): Original ABAQUS-PythonReader (2010), archived under [`legacy/`](legacy/).
+- **Hailin Wang** ([abqpy](https://github.com/haiiliin/abqpy)): Source of Abaqus Python API signatures and docstrings used for offline hover documentation.
 
 ### License
 
@@ -89,7 +90,8 @@ python run.py
 
 ### 致谢
 
-本项目重写自焦博士（[ck436@126.com](mailto:ck436@126.com)）2010 年开发的 ABAQUS-PythonReader。原版程序与源码保存在 [`legacy/`](legacy/)。
+- **焦博士**（[ck436@126.com](mailto:ck436@126.com)）：2010 年原版 ABAQUS-PythonReader 作者，代码归档于 [`legacy/`](legacy/)。
+- **Hailin Wang**（[abqpy](https://github.com/haiiliin/abqpy)）：本项目离线 API 悬停文档所使用的 Abaqus Python 签名与接口文档来源。
 
 ### 许可证
 
