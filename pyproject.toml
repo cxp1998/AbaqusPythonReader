@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "abaqus-python-reader"
-version = "1.01"
+version = "1.02"
 description = "Real-time HUD monitor for Abaqus CAE command stream (ABAQUS CAE Python 命令流实时监视与辅助工具)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -38,7 +38,7 @@ classifiers = [
     "Topic :: Software Development :: User Interfaces",
 ]
 dependencies = [
-    "PySide6>=6.5.0",
+    "PySide6-Essentials>=6.5.0",
 ]
 
 [project.optional-dependencies]

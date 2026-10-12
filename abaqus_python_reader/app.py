@@ -45,8 +45,15 @@ SVG_ICON_PATH = str(RESOURCES_DIR / "icon.svg")
 ICO_ICON_PATH = str(Path(__file__).resolve().parent / "app.ico")
 
 
+_CACHED_APP_ICON = None
+
+
 def get_vector_icon(size=32) -> QIcon:
-    """Renders scalable vector SVG icon into crisp multi-resolution QIcon."""
+    """Renders scalable vector SVG icon into crisp multi-resolution QIcon (cached)."""
+    global _CACHED_APP_ICON
+    if _CACHED_APP_ICON is not None and not _CACHED_APP_ICON.isNull():
+        return _CACHED_APP_ICON
+
     icon = QIcon()
     renderer = None
     if SVG_APP_LOGO:
@@ -64,10 +71,13 @@ def get_vector_icon(size=32) -> QIcon:
             renderer.render(p)
             p.end()
             icon.addPixmap(QPixmap.fromImage(img))
+        _CACHED_APP_ICON = icon
         return icon
     elif os.path.exists(ICO_ICON_PATH):
-        return QIcon(ICO_ICON_PATH)
+        _CACHED_APP_ICON = QIcon(ICO_ICON_PATH)
+        return _CACHED_APP_ICON
     return QIcon()
+
 
 
 class ToastOverlay(QLabel):
