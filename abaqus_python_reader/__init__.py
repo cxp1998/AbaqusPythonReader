@@ -1,2 +1,2 @@
 # AbaqusPythonReader
-__version__ = "1.00"
+__version__ = "1.01"
