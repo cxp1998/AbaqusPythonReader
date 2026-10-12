@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-AbaqusPythonReader is a Windows-only PySide6 (Qt6) HUD app that tails an Abaqus CAE replay journal (`abaqus.rpy`) in real time, syntax-highlights it, and optionally strips viewport noise (pan/rotate/zoom/fitView). It is a rewrite of a 2010 C# WinForms tool archived under `legacy/` (reference only — not built or tested). User-facing strings, docs and README are in Chinese.
+AbaqusPythonReader is a Windows-only PySide6 (Qt6) HUD app that tails an Abaqus CAE replay journal (`abaqus.rpy`) in real time, syntax-highlights it, and optionally strips viewport noise (pan/rotate/zoom/fitView). It is a rewrite of a 2010 C# WinForms tool archived under `legacy/` (reference only — not built or tested). User-facing strings, code comments and UI default to English, with runtime English/Chinese language switching supported.
 
 UI text conventions (the maintainer explicitly wants a terse, professional tone):
-- Menu items and buttons name the action only (`自动换行`, `重置窗口位置`) — no parenthetical explanations, marketing words (一键/强烈推荐/极致), exclamation marks or emoji. Put details in tooltips.
+- Menu items and buttons name the action only (`Word Wrap`, `Reset Window Position`) — no parenthetical explanations, marketing words, exclamation marks or emoji. Put details in tooltips.
 - Prefer a short toast (`show_toast`) over a modal `QMessageBox` for success feedback; keep message boxes for errors.
 - Menu on/off items keep their function icon on the left; when on, `ToggleMenu` (app.py) paints the Lucide `SVG_CHECK` icon right-aligned (use `ToggleMenu.add_toggle`). Don't use checkable `QAction`s (Qt's Windows styles replace the icon with the check) or text glyphs like ✓ (don't match the Lucide icon set). Both the "more" button and right-click menu are built by `MainWindow._build_menu`.
 - Copy and Save-as always strip viewport statements regardless of the filter toggle; this is intentional.
@@ -37,6 +37,7 @@ Data flow: `FileMonitor` → `MainWindow.raw_text_buffer` → `cleaner.clean_aba
 - **`abaqus_mode.py`** — journal recording modes (COORDINATE / INDEX / COMPRESSEDINDEX) in `MODE_INFO`. Writes/removes an `onCaeStartup()` block in the user-level `~/abaqus_v6.env` only (project-level env files were intentionally dropped), delimited by `HEADER_MARKER`/`FOOTER_MARKER` so it can be replaced idempotently without touching user content. Uses `ctypes` Win32 calls to detect/activate the Abaqus window for copy-and-focus.
 - **`highlighter.py`** — `THEMES` dict (`"dark"`/`"light"`) is the single source of editor colors, consumed by both `PythonHighlighter` and `CodeEditor` (line-number gutter). Includes an Abaqus API keyword list.
 - **`icons.py`** — Lucide icons stored as inline SVG strings (`SVG_*` constants), recolored and rasterized at runtime via `render_svg_to_icon`/`render_svg_to_pixmap`. Add icons here rather than as files. The app logo `SVG_APP_LOGO` is duplicated in `resources/icon.svg`; after changing it, update both and run `scripts/build_icons.py` to regenerate the static `app.ico` (exe/taskbar) and `icon_256.png` (README).
+- **`i18n.py`** — Centralized internationalization module supporting English (default) and Chinese (`zh`). Provides `tr()` function, guide HTML strings, and localized recording mode metadata.
 - **`config.py`** — `ConfigManager` merges `DEFAULT_CONFIG` with `abaqus_python_reader/config.json`, saving on every `set()`. Note the JSON file lives inside the package directory and is tracked in git, so running the app locally modifies a tracked file — avoid committing those incidental changes. New settings must be added to `DEFAULT_CONFIG`.
 
 `run.py` and `main.py` both insert the project root into `sys.path`, so the app runs from source without installation. Package data (`resources/`, `app.ico`, `config.json`) is declared in `pyproject.toml`; the PyInstaller spec lists its own `datas` separately — update both when adding bundled files.

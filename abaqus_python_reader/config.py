@@ -18,6 +18,7 @@ DEFAULT_CONFIG = {
     "window_y": 150,
     "window_width": 780,
     "window_height": 320,
+    "language": "en",           # "en" or "zh"
 }
 
 CONFIG_FILE = Path(__file__).resolve().parent / "config.json"

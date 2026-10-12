@@ -171,6 +171,12 @@ SVG_SHIELD_CHECK = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24
   <path d="m9 12 2 2 4-4"/>
 </svg>'''
 
+SVG_GLOBE = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="10"/>
+  <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+  <path d="M2 12h20"/>
+</svg>'''
+
 
 # -------------------------------------------------------------
 # Unified App Logo

@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 from PySide6.QtCore import QObject, QTimer, Signal
 
+from .i18n import tr
+
 
 class FileMonitor(QObject):
     # Signals
@@ -19,6 +21,10 @@ class FileMonitor(QObject):
         self.timer = QTimer(self)
         self.timer.setInterval(check_interval_ms)
         self.timer.timeout.connect(self._check_file)
+
+    def refresh_status(self):
+        """Re-evaluates file status and emits status signal with current language."""
+        self._check_file(initial_load=False)
 
     def set_file(self, filepath: str):
         self.filepath = os.path.abspath(filepath) if filepath else ""
@@ -43,11 +49,13 @@ class FileMonitor(QObject):
 
     def _check_file(self, initial_load=False):
         if not self.filepath:
-            self.file_status_changed.emit(False, "未指定监控文件")
+            self.file_status_changed.emit(False, tr("status_no_file"))
             return
 
         if not os.path.isfile(self.filepath):
-            self.file_status_changed.emit(False, f"文件未找到: {os.path.basename(self.filepath)}")
+            self.file_status_changed.emit(
+                False, tr("status_file_not_found", filename=os.path.basename(self.filepath))
+            )
             return
 
         try:
@@ -64,10 +72,14 @@ class FileMonitor(QObject):
             if current_size > self.last_pos or initial_load or current_mtime != self.last_mtime:
                 self._read_new_content(current_size)
                 self.last_mtime = current_mtime
-                self.file_status_changed.emit(True, f"监控中: {os.path.basename(self.filepath)}")
+                self.file_status_changed.emit(
+                    True, tr("status_monitoring", filename=os.path.basename(self.filepath))
+                )
 
         except Exception as e:
-            self.file_status_changed.emit(False, f"读取错误: {str(e)[:30]}")
+            self.file_status_changed.emit(
+                False, tr("status_read_error", error=str(e)[:30])
+            )
 
     def _read_new_content(self, current_size):
         try:
