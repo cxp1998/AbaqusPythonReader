@@ -20,6 +20,7 @@ DEFAULT_CONFIG = {
     "window_height": 320,
     "language": "en",           # "en" or "zh"
     "hover_doc": True,          # True: show Abaqus API doc on hover
+    "partition_blocks": True,   # True: partition code into distinct functional blocks
 }
 
 CONFIG_FILE = Path(__file__).resolve().parent / "config.json"

@@ -3,51 +3,51 @@ from PySide6.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor, QFont
 from PySide6.QtCore import QRegularExpression
 from .abaqus_docs import AbaqusDocManager
 
-# Color palettes
+# Color palettes (Taste Skill: Linear/Raycast CAD/CAE HUD aesthetic)
 THEMES = {
     "dark": {
-        "background": "#1e1e2e",
-        "editor_bg": "#181825",
-        "text": "#cdd6f4",
-        "keyword": "#cba6f7",       # Mauve
-        "builtin": "#89b4fa",       # Blue
-        "abaqus_api": "#f9e2af",    # Yellow
-        "function": "#89dceb",      # Sky
-        "string": "#a6e3a1",        # Green
-        "number": "#fab387",        # Peach
-        "comment": "#6c7086",       # Overlay0 (muted gray)
-        "decorator": "#f5c2e7",     # Pink
-        "operator": "#94e2d5",      # Teal
-        "selection_bg": "#45475a",
-        "line_number": "#585b70",
-        "line_number_bg": "#11111b",
-        "toolbar_bg": "#1e1e2e",
-        "border": "#313244",
-        "button_bg": "#313244",
-        "button_hover": "#45475a",
+        "background": "#0f172a",
+        "editor_bg": "#0f172a",
+        "text": "#f1f5f9",
+        "keyword": "#c084fc",       # Purple
+        "builtin": "#60a5fa",       # Blue
+        "abaqus_api": "#fbbf24",    # Amber
+        "function": "#38bdf8",      # Sky
+        "string": "#4ade80",        # Green
+        "number": "#fb923c",        # Orange
+        "comment": "#64748b",       # Slate muted
+        "decorator": "#f472b6",     # Pink
+        "operator": "#2dd4bf",      # Teal
+        "selection_bg": "#1e3a5f",  # Deep navy selection
+        "line_number": "#64748b",
+        "line_number_bg": "#0b1120",
+        "toolbar_bg": "#1e293b",
+        "border": "#334155",
+        "button_bg": "#1e293b",
+        "button_hover": "#334155",
         "type_hint_bg": "#1e3a5f",  # Deep navy badge background
         "type_hint_fg": "#7dd3fc",  # Sky light text
     },
     "light": {
         "background": "#ffffff",
         "editor_bg": "#ffffff",
-        "text": "#1f2937",
+        "text": "#0f172a",
         "keyword": "#7c3aed",
-        "builtin": "#2563eb",
-        "abaqus_api": "#b45309",
-        "function": "#4338ca",
-        "string": "#059669",
-        "number": "#d97706",
-        "comment": "#9ca3af",
+        "builtin": "#0284c7",
+        "abaqus_api": "#d97706",
+        "function": "#2563eb",
+        "string": "#16a34a",
+        "number": "#ea580c",
+        "comment": "#94a3b8",
         "decorator": "#db2777",
-        "operator": "#4b5563",
-        "selection_bg": "#e0e7ff",
-        "line_number": "#9ca3af",
-        "line_number_bg": "#f9fafb",
-        "toolbar_bg": "#f9fafb",
-        "border": "#e5e7eb",
-        "button_bg": "#f3f4f6",
-        "button_hover": "#e5e7eb",
+        "operator": "#475569",
+        "selection_bg": "#e0f2fe",
+        "line_number": "#94a3b8",
+        "line_number_bg": "#f8fafc",
+        "toolbar_bg": "#f8fafc",
+        "border": "#cbd5e1",
+        "button_bg": "#f1f5f9",
+        "button_hover": "#e2e8f0",
         "type_hint_bg": "#bae6fd",  # Sky-200 pastel blue background
         "type_hint_fg": "#0369a1",  # Deep sky blue text
     }
@@ -175,6 +175,17 @@ class PythonHighlighter(QSyntaxHighlighter):
         self.comment_pattern = QRegularExpression(r"#.*")
         self.string_comment_rules.append((self.comment_pattern, self.comment_fmt))
 
+        # Block banner formatting
+        is_dark = (self.theme_name == "dark")
+        self.block_border_fmt = QTextCharFormat()
+        self.block_border_fmt.setForeground(QColor("#475569" if is_dark else "#94a3b8"))
+        self.block_border_fmt.setFontWeight(QFont.Weight.Bold)
+
+        self.block_title_fmt = QTextCharFormat()
+        self.block_title_fmt.setForeground(QColor("#38bdf8" if is_dark else "#0284c7"))
+        self.block_title_fmt.setBackground(QColor(56, 189, 248, 30) if is_dark else QColor(2, 132, 199, 22))
+        self.block_title_fmt.setFontWeight(QFont.Weight.Bold)
+
         # Multi-line string delimiters
         self.tri_single_start = QRegularExpression(r"'''")
         self.tri_single_end = QRegularExpression(r"'''")
@@ -182,6 +193,15 @@ class PythonHighlighter(QSyntaxHighlighter):
         self.tri_double_end = QRegularExpression(r'"""')
 
     def highlightBlock(self, text):
+        stripped = text.strip()
+        if stripped.startswith("# ==============================================================================") or \
+           stripped.startswith("# ------------------------------------------------------------------------------"):
+            self.setFormat(0, len(text), self.block_border_fmt)
+            return
+        elif stripped.startswith("# 【功能分区】") or stripped.startswith("# [Block]") or stripped.startswith("# [Stage:"):
+            self.setFormat(0, len(text), self.block_title_fmt)
+            return
+
         # 1. Base syntax highlighting (keywords, builtins, numbers, defs)
         for pattern, fmt in self.highlighting_rules:
             match_iterator = pattern.globalMatch(text)

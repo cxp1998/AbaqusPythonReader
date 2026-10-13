@@ -15,5 +15,6 @@
   "window_width": 780,
   "window_height": 320,
   "language": "en",
-  "hover_doc": true
+  "hover_doc": true,
+  "partition_blocks": true
 }

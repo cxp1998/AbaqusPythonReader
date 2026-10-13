@@ -57,6 +57,41 @@ class TestAbaqusCleaner(unittest.TestCase):
         self.assertTrue(has_mask_statement(mask_code))
         self.assertFalse(has_mask_statement(coord_code))
 
+    def test_format_standalone_script(self):
+        from abaqus_python_reader.cleaner import format_standalone_script
+        raw = (
+            "session.viewports['Viewport: 1'].view.rotate(xAngle=15.0)\n"
+            "p = mdb.models['Model-1'].Part(name='Beam', dimensionality=THREE_D, type=DEFORMABLE_BODY)\n"
+        )
+        res = format_standalone_script(raw)
+        self.assertTrue(res.startswith("# -*- coding: mbcs -*-"))
+        self.assertIn("from abaqus import *", res)
+        self.assertIn("from abaqusConstants import *", res)
+        self.assertIn("from caeModules import *", res)
+        self.assertIn("from driverUtils import executeOnCaeStartup", res)
+        self.assertIn("executeOnCaeStartup()", res)
+        self.assertIn("Beam", res)
+        self.assertNotIn("rotate", res)
+
+    def test_format_standalone_script_preserves_existing(self):
+        from abaqus_python_reader.cleaner import format_standalone_script
+        already_complete = (
+            "# -*- coding: utf-8 -*-\n"
+            "from abaqus import *\n"
+            "from abaqusConstants import *\n"
+            "from caeModules import *\n"
+            "from driverUtils import executeOnCaeStartup\n"
+            "executeOnCaeStartup()\n"
+            "print('Hello Abaqus')\n"
+        )
+        res = format_standalone_script(already_complete)
+        self.assertEqual(res.count("from abaqus import *"), 1)
+        self.assertEqual(res.count("executeOnCaeStartup()"), 1)
+        self.assertEqual(res.count("# -*- coding:"), 1)
+        self.assertIn("utf-8", res)
+        self.assertIn("Hello Abaqus", res)
+
 
 if __name__ == "__main__":
     unittest.main()
+

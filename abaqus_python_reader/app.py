@@ -8,7 +8,8 @@ from PySide6.QtWidgets import (
     QSystemTrayIcon, QFrame, QApplication
 )
 from PySide6.QtGui import (
-    QIcon, QFont, QCursor, QColor, QPixmap, QPainter, QImage, QAction
+    QIcon, QFont, QCursor, QColor, QPixmap, QPainter, QImage, QAction,
+    QKeySequence, QShortcut
 )
 from PySide6.QtCore import (
     Qt, QPoint, QRect, QSize, QTimer, QByteArray
@@ -18,8 +19,9 @@ from PySide6.QtSvg import QSvgRenderer
 from . import __version__
 from .config import ConfigManager
 from .file_monitor import FileMonitor
-from .cleaner import clean_abaqus_script, has_mask_statement
+from .cleaner import clean_abaqus_script, has_mask_statement, format_standalone_script
 from .editor import CodeEditor
+from .abaqus_milestones import partition_code_by_stages
 from .highlighter import THEMES
 from .icons import (
     render_svg_to_icon, render_svg_to_pixmap, get_app_logo_pixmap,
@@ -29,7 +31,9 @@ from .icons import (
     SVG_WRAP, SVG_SCROLL, SVG_HASH, SVG_FRAME, SVG_OPACITY,
     SVG_RESET, SVG_INFO, SVG_QUIT,
     SVG_CROSSHAIR, SVG_LIST_ORDERED, SVG_ALERT_TRIANGLE,
-    SVG_SETTINGS, SVG_BOOK_OPEN, SVG_TERMINAL, SVG_GLOBE
+    SVG_SETTINGS, SVG_BOOK_OPEN, SVG_TERMINAL, SVG_GLOBE,
+    SVG_SEARCH, SVG_CHEVRON_UP, SVG_CHEVRON_DOWN, SVG_FILE_CODE,
+    SVG_COMPASS, SVG_BOOKMARKS
 )
 from .abaqus_mode import (
     MODE_COORDINATE, MODE_INDEX, MODE_COMPRESSED,
@@ -37,6 +41,7 @@ from .abaqus_mode import (
     AbaqusModeDialog, AbaqusGuideDialog,
     find_abaqus_window, activate_abaqus_window
 )
+from .abaqus_detector import detect_active_abaqus_workspace
 from .i18n import tr, set_language, get_language, SUPPORTED_LANGUAGES
 
 
@@ -188,9 +193,13 @@ class MainWindow(QMainWindow):
         self._init_tray()
         self._connect_signals()
 
-        # Load file & start monitoring
+        # Load file & start monitoring (with auto-detection fallback)
         last_file = self.config.get("last_file", "abaqus.rpy")
-        self.file_monitor.set_file(last_file)
+        if not os.path.exists(last_file):
+            if not self._auto_detect_workspace(silent=True):
+                self.file_monitor.set_file(last_file)
+        else:
+            self.file_monitor.set_file(last_file)
         self.file_monitor.start()
 
     def show_toast(self, text: str, is_active: bool = True, duration_ms: int = 1500):
@@ -237,7 +246,15 @@ class MainWindow(QMainWindow):
             CodeEditor.LineWrapMode.WidgetWidth if self.config.get("word_wrap", True)
             else CodeEditor.LineWrapMode.NoWrap
         )
+
         layout.addWidget(self.editor)
+
+        # Global application shortcuts for search and font zooming
+        QShortcut(QKeySequence("Ctrl+F"), self, activated=self.editor.open_search_overlay)
+        QShortcut(QKeySequence("Ctrl+="), self, activated=lambda: self.editor.zoom_font(1))
+        QShortcut(QKeySequence("Ctrl++"), self, activated=lambda: self.editor.zoom_font(1))
+        QShortcut(QKeySequence("Ctrl+-"), self, activated=lambda: self.editor.zoom_font(-1))
+        QShortcut(QKeySequence("Ctrl+0"), self, activated=self.editor.reset_font_zoom)
 
         self.setMouseTracking(True)
         self.central_widget.setMouseTracking(True)
@@ -270,6 +287,14 @@ class MainWindow(QMainWindow):
         self.btn_file.clicked.connect(self._browse_file)
         layout.addWidget(self.btn_file)
 
+        # Auto-detect Workspace Button (Compass icon)
+        self.btn_detect = QPushButton()
+        self.btn_detect.setObjectName("DetectBtn")
+        self.btn_detect.setFixedWidth(24)
+        self.btn_detect.setToolTip(tr("btn_detect_tooltip"))
+        self.btn_detect.clicked.connect(lambda: self._auto_detect_workspace(silent=False))
+        layout.addWidget(self.btn_detect)
+
         # Mask Warning Badge (Shown when getSequenceFromMask is detected)
         self.btn_mask_warning = QPushButton(tr("btn_mask_warning"))
         self.btn_mask_warning.setObjectName("MaskWarning")
@@ -279,6 +304,13 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.btn_mask_warning)
 
         layout.addStretch()
+
+        # 0. Search in editor
+        self.btn_search = QPushButton()
+        self.btn_search.setFixedWidth(28)
+        self.btn_search.setToolTip(f"{tr('menu_find')} (Ctrl+F)")
+        self.btn_search.clicked.connect(lambda: self.editor.open_search_overlay())
+        layout.addWidget(self.btn_search)
 
         # 1. Viewport filter toggle
         self.btn_filter = QPushButton(tr("btn_filter"))
@@ -339,8 +371,11 @@ class MainWindow(QMainWindow):
     def _retranslate_ui(self):
         """Refreshes all user-visible strings across UI elements and menus."""
         self.btn_file.setToolTip(tr("btn_file_tooltip"))
+        if hasattr(self, "btn_detect"):
+            self.btn_detect.setToolTip(tr("btn_detect_tooltip"))
         self.btn_mask_warning.setText(tr("btn_mask_warning"))
         self.btn_mask_warning.setToolTip(tr("btn_mask_warning_tooltip"))
+        self.btn_search.setToolTip(f"{tr('menu_find')} (Ctrl+F)")
         self.btn_filter.setText(tr("btn_filter"))
         self.btn_filter.setToolTip(tr("btn_filter_tooltip"))
         self.btn_copy.setText(tr("btn_copy"))
@@ -372,8 +407,16 @@ class MainWindow(QMainWindow):
         # Unified App Logo
         self.lbl_logo.setPixmap(get_app_logo_pixmap(size=18, is_dark=is_dark))
 
+        # Detect Workspace Button
+        if hasattr(self, "btn_detect"):
+            self.btn_detect.setIcon(render_svg_to_icon(SVG_COMPASS, color=icon_color, size=13))
+
         # Mask Warning Button
         self.btn_mask_warning.setIcon(render_svg_to_icon(SVG_ALERT_TRIANGLE, color="#f59e0b" if is_dark else "#d97706", size=13))
+
+        # Search Button: normal icon_color
+        if hasattr(self, "btn_search"):
+            self.btn_search.setIcon(render_svg_to_icon(SVG_SEARCH, color=icon_color, size=13))
 
         # Filter Button: white icon if checked (active blue bg), else normal icon_color
         filter_color = "#ffffff" if self.btn_filter.isChecked() else icon_color
@@ -433,6 +476,8 @@ class MainWindow(QMainWindow):
     def _refresh_editor_content(self):
         filter_active = self.config.get("filter_viewport", True)
         processed_text = clean_abaqus_script(self.raw_text_buffer, filter_viewport=filter_active)
+        if self.config.get("partition_blocks", True):
+            processed_text = partition_code_by_stages(processed_text, lang=get_language())
 
         # Smart inspection: check if getSequenceFromMask exists in raw text
         has_mask = has_mask_statement(self.raw_text_buffer)
@@ -458,6 +503,8 @@ class MainWindow(QMainWindow):
 
     def _copy_clean_code(self):
         text = clean_abaqus_script(self.raw_text_buffer, filter_viewport=True)
+        if self.config.get("partition_blocks", True):
+            text = partition_code_by_stages(text, lang=get_language())
         if not text.strip():
             text = self.editor.toPlainText()
         QApplication.clipboard().setText(text)
@@ -506,6 +553,23 @@ class MainWindow(QMainWindow):
             self.config.set("last_file", filepath)
             self.file_monitor.set_file(filepath)
 
+    def _auto_detect_workspace(self, silent: bool = False) -> bool:
+        """Attempts to auto-detect active Abaqus working directory and abaqus.rpy."""
+        detected = detect_active_abaqus_workspace()
+        if detected:
+            rpy_path = detected["rpy_path"] if isinstance(detected, dict) else str(detected)
+            self.config.set("last_file", rpy_path)
+            self.file_monitor.set_file(rpy_path)
+            parent_name = os.path.basename(os.path.dirname(rpy_path))
+            file_name = os.path.basename(rpy_path)
+            short_path = rpy_path if len(rpy_path) <= 35 else f"...{os.sep}{parent_name}{os.sep}{file_name}"
+            self.show_toast(tr("toast_detected_abaqus", path=short_path), is_active=True, duration_ms=2500)
+            return True
+        else:
+            if not silent:
+                self.show_toast(tr("toast_no_active_abaqus"), is_active=False, duration_ms=2500)
+            return False
+
     def _save_as_file(self):
         filepath, _ = QFileDialog.getSaveFileName(
             self,
@@ -522,6 +586,25 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 QMessageBox.critical(self, tr("dlg_save_failed_title"), str(e))
 
+    def _export_standalone_script(self):
+        default_dir = os.path.dirname(self.file_monitor.filepath) if self.file_monitor.filepath else os.getcwd()
+        default_path = os.path.join(default_dir, "abaqus_standalone_script.py")
+        filepath, _ = QFileDialog.getSaveFileName(
+            self,
+            tr("dlg_export_standalone_title"),
+            default_path,
+            tr("dlg_export_standalone_filter")
+        )
+        if filepath:
+            source_text = self.raw_text_buffer if self.raw_text_buffer.strip() else self.editor.toPlainText()
+            standalone_code = format_standalone_script(source_text)
+            try:
+                with open(filepath, "w", encoding="utf-8") as f:
+                    f.write(standalone_code)
+                self.show_toast(tr("toast_standalone_exported", filename=os.path.basename(filepath)), is_active=True)
+            except Exception as e:
+                QMessageBox.critical(self, tr("dlg_save_failed_title"), str(e))
+
     def _build_menu(self, context: bool = False) -> QMenu:
         """Builds the main menu shared by the "more" button and the right-click context menu."""
         is_dark = self.config.get("dark_theme", False)
@@ -532,20 +615,33 @@ class MainWindow(QMainWindow):
 
         menu = ToggleMenu(self, check_color=action_color)
 
+        menu.addAction(icon(SVG_SEARCH), tr("menu_find") + "\tCtrl+F", self.editor.open_search_overlay)
+        menu.addAction(icon(SVG_COMPASS), tr("menu_auto_detect"), lambda: self._auto_detect_workspace(silent=False))
         if context:
             menu.addAction(icon(SVG_COPY), tr("menu_copy"), self._copy_clean_code)
         menu.addAction(icon(SVG_CLEAR), tr("menu_clear"), self._clear_view)
         menu.addAction(icon(SVG_FOLDER), tr("menu_open_file"), self._browse_file)
         menu.addAction(icon(SVG_SAVE), tr("menu_save_as"), self._save_as_file)
+        menu.addAction(icon(SVG_FILE_CODE), tr("menu_export_standalone"), self._export_standalone_script)
         menu.addSeparator()
 
         if context:
             menu.add_toggle(icon(SVG_FILTER), tr("menu_hide_viewport"), self.btn_filter.isChecked(), lambda: self.btn_filter.click())
+        menu.add_toggle(icon(SVG_BOOKMARKS), tr("menu_partition_blocks"), self.config.get("partition_blocks", True), lambda: self._toggle_partition_blocks())
         menu.add_toggle(icon(SVG_WRAP), tr("menu_word_wrap"), self.config.get("word_wrap", True), lambda: self._toggle_word_wrap())
         menu.add_toggle(icon(SVG_SCROLL), tr("menu_auto_scroll"), self.config.get("auto_scroll", True), lambda: self._toggle_auto_scroll())
         menu.add_toggle(icon(SVG_HASH), tr("menu_line_numbers"), self.config.get("show_line_numbers", True), lambda: self._toggle_line_numbers())
         menu.add_toggle(icon(SVG_BOOK_OPEN), tr("menu_hover_doc"), self.config.get("hover_doc", True), lambda: self._toggle_hover_doc())
         menu.add_toggle(icon(SVG_FRAME), tr("menu_frameless"), self.config.get("frameless", True), lambda: self._toggle_frameless())
+
+        # Font zoom submenu
+        zoom_menu = QMenu(menu)
+        zoom_menu.setTitle("Zoom" if get_language() == "en" else "字体缩放")
+        zoom_menu.setIcon(icon(SVG_CHEVRON_UP))
+        zoom_menu.addAction(icon(SVG_CHEVRON_UP), tr("menu_font_zoom_in") + "\tCtrl++", lambda: self.editor.zoom_font(1))
+        zoom_menu.addAction(icon(SVG_CHEVRON_DOWN), tr("menu_font_zoom_out") + "\tCtrl+-", lambda: self.editor.zoom_font(-1))
+        zoom_menu.addAction(icon(SVG_RESET), tr("menu_font_zoom_reset") + "\tCtrl+0", self.editor.reset_font_zoom)
+        menu.addMenu(zoom_menu)
 
         # Opacity submenu
         current_op = self.config.get("opacity", 95)
@@ -623,6 +719,14 @@ class MainWindow(QMainWindow):
         self.editor.set_hover_doc_enabled(checked)
         status = tr("state_on") if checked else tr("state_off")
         self.show_toast(tr("toast_hover_doc", state=status), is_active=checked)
+
+    def _toggle_partition_blocks(self, checked=None):
+        if checked is None or isinstance(checked, QPoint) or not isinstance(checked, bool):
+            checked = not self.config.get("partition_blocks", True)
+        self.config.set("partition_blocks", checked)
+        self._refresh_editor_content()
+        status = tr("state_on") if checked else tr("state_off")
+        self.show_toast(tr("toast_partition_blocks", state=status), is_active=checked)
 
     def _toggle_frameless(self, checked=None):
         if checked is None or isinstance(checked, QPoint) or not isinstance(checked, bool):
@@ -713,17 +817,17 @@ class MainWindow(QMainWindow):
         colors = THEMES["dark" if is_dark else "light"]
 
         if is_dark:
-            badge_bg = "rgba(137, 180, 250, 0.12)"
-            badge_border = "rgba(137, 180, 250, 0.25)"
-            active_btn_bg = "#3b82f6"
+            badge_bg = "rgba(30, 41, 59, 0.7)"
+            badge_border = "#334155"
+            active_btn_bg = "#0284c7"
             active_btn_fg = "#ffffff"
-            warn_bg = "rgba(245, 158, 11, 0.18)"
+            warn_bg = "rgba(245, 158, 11, 0.15)"
             warn_border = "rgba(245, 158, 11, 0.4)"
             warn_fg = "#fbbf24"
         else:
-            badge_bg = "#f3f4f6"
-            badge_border = "#e5e7eb"
-            active_btn_bg = "#2563eb"
+            badge_bg = "#f1f5f9"
+            badge_border = "#cbd5e1"
+            active_btn_bg = "#0284c7"
             active_btn_fg = "#ffffff"
             warn_bg = "#fef3c7"
             warn_border = "#fde68a"
@@ -743,6 +847,7 @@ class MainWindow(QMainWindow):
             }}
             QLabel {{
                 color: {colors["text"]};
+                font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
             }}
             QPushButton {{
                 background-color: {colors["button_bg"]};
@@ -751,6 +856,7 @@ class MainWindow(QMainWindow):
                 border-radius: 4px;
                 padding: 2px 7px;
                 font-size: 11px;
+                font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
             }}
             QPushButton:hover {{
                 background-color: {colors["button_hover"]};
@@ -767,6 +873,12 @@ class MainWindow(QMainWindow):
                 border-radius: 10px;
                 padding: 1px 8px;
                 font-size: 11px;
+            }}
+            QPushButton#DetectBtn {{
+                padding: 1px 4px;
+            }}
+            QPushButton#DetectBtn:hover {{
+                border-color: {active_btn_bg};
             }}
             QPushButton#MaskWarning {{
                 background-color: {warn_bg};
@@ -792,16 +904,19 @@ class MainWindow(QMainWindow):
                 border: 1px solid {colors["border"]};
                 border-radius: 6px;
                 padding: 4px;
+                font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
             }}
             QMenu::item {{
                 padding: 5px 20px 5px 10px;
                 border-radius: 4px;
+                font-size: 11px;
             }}
             QMenu#ToggleMenu::item {{
                 padding-right: 36px;
             }}
             QMenu::item:selected {{
                 background-color: {colors["button_hover"]};
+                color: {"#38bdf8" if is_dark else "#0284c7"};
             }}
             QMenu::icon {{
                 padding-left: 2px;
@@ -815,8 +930,10 @@ class MainWindow(QMainWindow):
                 background-color: {colors["editor_bg"]};
                 color: {colors["text"]};
                 border: 1px solid {colors["border"]};
-                border-radius: 6px;
-                padding: 0px;
+                border-radius: 4px;
+                padding: 3px 6px;
+                font-size: 11px;
+                font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
             }}
         """)
 

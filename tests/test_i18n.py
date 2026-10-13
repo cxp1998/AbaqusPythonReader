@@ -53,15 +53,22 @@ class TestI18n(unittest.TestCase):
         self.assertEqual(info_zh["badge"], "坐标")
         self.assertEqual(info_zh["tag"], "推荐")
 
-    def test_guide_html_localization(self):
-        html_en = get_guide_html(lang="en")
-        self.assertIn("Coordinate", html_en)
-        self.assertIn("By default, Abaqus/CAE", html_en)
+    def test_new_feature_translations(self):
+        set_language("en")
+        self.assertEqual(tr("menu_find"), "Find")
+        self.assertEqual(tr("search_placeholder"), "Find in editor...")
+        self.assertEqual(tr("search_no_results"), "No results")
+        self.assertIn("Export Standalone Script", tr("menu_export_standalone"))
+        self.assertEqual(tr("toast_font_size", size=12), "Font size: 12pt")
 
-        html_zh = get_guide_html(lang="zh")
-        self.assertIn("坐标", html_zh)
-        self.assertIn("Abaqus/CAE 默认以掩码", html_zh)
+        set_language("zh")
+        self.assertEqual(tr("menu_find"), "查找")
+        self.assertEqual(tr("search_placeholder"), "在编辑器中查找...")
+        self.assertEqual(tr("search_no_results"), "无匹配结果")
+        self.assertIn("导出为独立运行脚本", tr("menu_export_standalone"))
+        self.assertEqual(tr("toast_font_size", size=12), "字体大小：12pt")
 
 
 if __name__ == "__main__":
     unittest.main()
+

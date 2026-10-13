@@ -128,3 +128,50 @@ def has_mask_statement(text: str) -> bool:
     """Checks whether text contains getSequenceFromMask statements."""
     return "getSequenceFromMask" in text
 
+
+def format_standalone_script(raw_text: str, add_chapters: bool = True) -> str:
+    """
+    Converts recorded Abaqus commands into a clean, standalone runnable Python script:
+    - Filters out viewport pan/rotate/zoom operations
+    - Injects clean milestone chapter banners if add_chapters is True
+    - Ensures standard Abaqus CAE environment imports and startup hooks are present
+    - Avoids duplicate imports if already present
+    - Normalizes formatting
+    """
+    cleaned_body = clean_abaqus_script(raw_text, filter_viewport=True).strip()
+    if add_chapters:
+        from .abaqus_milestones import inject_milestone_chapters
+        cleaned_body = inject_milestone_chapters(cleaned_body).strip()
+
+    header_parts = []
+
+    # 1. Encoding declaration
+    if not re.search(r'#\s*-\*-\s*coding[:=]', cleaned_body):
+        header_parts.append("# -*- coding: mbcs -*-")
+
+    # 2. Standard Abaqus CAE imports
+    needed_imports = []
+    if not re.search(r'\bfrom\s+abaqus\s+import\b|\bimport\s+abaqus\b', cleaned_body):
+        needed_imports.append("from abaqus import *")
+    if not re.search(r'\bfrom\s+abaqusConstants\s+import\b|\bimport\s+abaqusConstants\b', cleaned_body):
+        needed_imports.append("from abaqusConstants import *")
+    if not re.search(r'\bfrom\s+caeModules\s+import\b|\bimport\s+caeModules\b', cleaned_body):
+        needed_imports.append("from caeModules import *")
+    if not re.search(r'\bexecuteOnCaeStartup\s*\(', cleaned_body):
+        needed_imports.append("from driverUtils import executeOnCaeStartup\nexecuteOnCaeStartup()")
+
+    if needed_imports:
+        header_parts.extend(needed_imports)
+
+    if header_parts:
+        header_block = "\n".join(header_parts)
+        if cleaned_body:
+            result = f"{header_block}\n\n{cleaned_body}\n"
+        else:
+            result = f"{header_block}\n"
+    else:
+        result = f"{cleaned_body}\n" if cleaned_body else ""
+
+    return result
+
+
